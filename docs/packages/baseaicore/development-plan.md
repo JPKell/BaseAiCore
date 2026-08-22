@@ -5,9 +5,11 @@
 
 ---
 
-## Phase 1 — Measurement, identity and time primitives
+## Phase 1 — Measurement, identity, time and cost primitives
 
-**Goal:** a script can build a canonical model identity, represent an unavailable measurement safely, and generate a sortable ID — with `baseaicore` as the only installed suite package.
+**Goal:** a script can build a canonical model identity, represent an unavailable measurement safely,
+generate a sortable ID, and cost a call against a dated price observation — with `baseaicore` as the
+only installed suite package.
 
 **Prerequisites:** repository created; CI template; [Coding](../../standards/coding-standards.md) and [Testing](../../standards/testing-standards.md) standards adopted.
 
@@ -25,11 +27,21 @@
 * `timeutil.py`: `utc_now`, `to_rfc3339`, `from_rfc3339`, `Clock`.
 * `hashing.py`: `canonical_json`, `sha256_of`.
 * `errors.py`: `SuiteError` and subclasses with stable codes.
+* `money.py`: `Money` (exact integer nanos in a named currency), `normalize_currency`. No floats, no
+  currency conversion — cross-currency arithmetic raises
+  ([ADR-0030](../../adr/0030-model-cost-and-pricing.md) §2–3).
+* `cost.py`: `TokenCount`, `TokenUsage` (disjoint billable token counts), `PricingSource`,
+  `TokenRates` (per **million** tokens, as quoted), `ModelPricing` (a dated, sourced, windowed price
+  observation with a `pricing_hash` that excludes `observed_at`), `CostEstimate`, `estimate_cost`.
+  Cost is derived from stored usage, never stored as the primary fact, so a price correction
+  re-costs history instead of corrupting it (ADR-0030 §1). An absent rate against a non-zero count
+  yields `UNSUPPORTED` with a reason — a local model is not a free model (ADR-0030 §6).
 
 **Files/subsystems**
 ```text
-src/baseaicore/{__init__,__about__,measurement,identity,ids,timeutil,hashing,errors}.py
-tests/unit/{test_measurement,test_identity,test_ids,test_timeutil,test_hashing,test_errors}.py
+src/baseaicore/{__init__,__about__,measurement,identity,ids,timeutil,hashing,errors,money,cost}.py
+tests/unit/{test_measurement,test_identity,test_ids,test_timeutil,test_hashing,test_errors,
+            test_money,test_cost}.py
 tests/test_packaging.py
 ```
 
@@ -44,18 +56,38 @@ tests/test_packaging.py
 * ULIDs sort by creation order, are unique across 100 000 generations, and round-trip.
 * `from_rfc3339` rejects naive input; `to_rfc3339` always emits millisecond precision with `Z`.
 * `canonical_json` byte-identical across repeats; `UNSUPPORTED` serializes to `"unsupported"`; float formatting stable.
+* `Money`: exact addition and subtraction, multiplication by a count, ordering, and a
+  `ValidationError` from every operator when the currencies differ; `Decimal` round-trip; rounding
+  exactly at the half (banker's); malformed currency codes rejected.
+* `TokenUsage`: `total_tokens` is `UNSUPPORTED` when any component is; negative counts rejected.
+* `pricing_hash` is stable across processes, identical for two records differing only in
+  `observed_at`, and different when the tier, the region or any rate changes.
+* `estimate_cost`: golden totals for a realistic price list; the total equals the sum of its
+  components exactly; an unpriced rate with a **non-zero** count yields an `UNSUPPORTED` total and a
+  reason naming the rate; the same rate with a **zero** count yields zero and no reason; an
+  unreported token count yields `UNSUPPORTED`; pricing outside its stated window yields
+  `UNSUPPORTED`; a naive `at` raises.
 * Packaging test: clean-venv install, import, and an assertion that no third-party module is imported.
 
 **Acceptance criteria**
 1. `pip install baseaicore && python -c "from baseaicore import ModelIdentity, UNSUPPORTED; …"` works.
 2. `UNSUPPORTED or 0` raises rather than yielding `0`.
 3. Golden canonical IDs match the values recorded in this plan's test fixtures.
-4. `mypy --strict`, `ruff`, `lint-imports` all clean; coverage ≥ 95 %.
+4. A model with no price list costs `UNSUPPORTED`, never `0` — asserted, and asserted again for the
+   per-token-class case where only one rate is missing.
+5. `mypy --strict`, `ruff`, `lint-imports` all clean; coverage ≥ 95 %.
 
-**Known risks:** ULID implementation correctness (monotonicity within a millisecond); canonical float formatting differing across platforms.
-**Likely failure modes:** a sentinel that is accidentally falsy in some path; identity strings that are not URL-safe; ULID collisions under concurrency.
-**Gold standards:** zero dependencies; 100 % coverage of this module set; deterministic outputs.
-**Deferred:** descriptors, runtime profiles, machine profiles, capability IDs.
+**Known risks:** ULID implementation correctness (monotonicity within a millisecond); canonical float
+formatting differing across platforms; cost arithmetic that rounds each component and then disagrees
+with its own total.
+**Likely failure modes:** a sentinel that is accidentally falsy in some path; identity strings that
+are not URL-safe; ULID collisions under concurrency; a price silently applied outside the window it
+was quoted for; cached-token counts double-billed because a provider reports them inside the prompt
+count (guarded here by defining `TokenUsage` as disjoint, and caught in ModelRack's conformance suite).
+**Gold standards:** zero dependencies; 100 % coverage of this module set; deterministic outputs;
+unavailable is never zero, in money as well as in measurement.
+**Deferred:** descriptors, runtime profiles, machine profiles, capability IDs; non-token billing
+units and price acquisition (both out of scope for this package entirely — ADR-0030).
 
 ---
 
@@ -163,4 +195,5 @@ docs/{quickstart.md,api.md}
 **Known risks:** freezing the API before ModelRack and FreeWeight exercise it. Mitigated by `0.x` versioning and by treating the first FreeWeight phase as the real API review.
 **Likely failure modes:** a missing `py.typed` silently disabling downstream type checking (covered by a test); an over-broad `__all__` committing us to internals.
 **Gold standards:** clean, minimal public API; zero dependencies; deterministic serialization; 95 %+ coverage; documented behaviour.
-**Deferred:** LoRA identity, cost types, richer comparability verdicts — all listed as future extensions in the spec.
+**Deferred:** LoRA identity, non-token billing units, richer comparability verdicts — all listed as
+future extensions in the spec. (Cost types shipped in Phase 1.)

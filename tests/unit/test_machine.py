@@ -1,4 +1,6 @@
-"""Tests for tests.unit.test_machine.
+"""Reserved for Phase 3, alongside ``baseaicore.machine``.
 
-TODO: implement per docs/packages/baseaicore/development-plan.md.
+The tests this file will hold are listed under Phase 3 in
+docs/packages/baseaicore/development-plan.md; they are written before that phase's
+implementation, per testing-standards.md rule zero.
 """

@@ -20,3 +20,22 @@ repos:
     rev: v8.18.4
     hooks:
       - id: gitleaks
+  # Type check and the fast unit subset, per coding-standards.md §11. These run from the local
+  # dev environment (`pip install -e ".[dev]"`); CI re-runs everything, so a local hook is a
+  # convenience and never the gate.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict)
+        entry: mypy
+        language: system
+        pass_filenames: false
+        args: [src, tests]
+        types: [python]
+      - id: pytest-unit
+        name: pytest (unit subset)
+        entry: pytest
+        language: system
+        pass_filenames: false
+        args: [tests/unit, -q]
+        types: [python]

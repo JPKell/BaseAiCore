@@ -46,16 +46,40 @@ packages = ["src/baseaicore"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
+# `docs/` is a curated copy of the suite's central documentation (docs/README.md); ruff formats
+# Python blocks inside Markdown, and reformatting a mirrored document would make it diverge from
+# its source of truth for no benefit.
+extend-exclude = ["docs"]
+
+[tool.ruff.format]
+quote-style = "double"
+skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "S", "T20", "DTZ", "PTH", "D1", "BLE"]
-ignore = ["D100", "D104"]
+# The rule set named in docs/standards/coding-standards.md §11. Identical in every suite repository
+# so that a file moving between them does not change meaning.
+select = [
+    "E", "W", "F", "I", "N", "D", "UP", "ANN", "B", "A", "C4", "DTZ", "T20",
+    "SIM", "TID", "PTH", "ERA", "PL", "RUF", "S", "BLE", "ARG", "C901",
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "D1"]
+# Tests assert (S101) and compare against literal expected values (PLR2004) — that is their job.
+# D1 is relaxed because a test's name is its docstring; non-obvious tests still carry one.
+# ANN401: a validation test's parameters deliberately receive values of the wrong type, which is
+# what `Any` means here; annotating them precisely would defeat the test.
+# S311: seeded `random.Random` is how testing-standards.md §4 requires randomness to be made
+# reproducible. Nothing in tests is cryptographic.
+"tests/**" = ["S101", "D1", "PLR2004", "ANN401", "S311"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.mypy]
 python_version = "3.12"
@@ -76,5 +100,7 @@ source = ["src/baseaicore"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 85
+# 95 %, not the suite-wide 85 %: this is a shared package (testing-standards.md §6, gold standard G11).
+fail_under = 95
 show_missing = true
+exclude_also = ["if TYPE_CHECKING:"]

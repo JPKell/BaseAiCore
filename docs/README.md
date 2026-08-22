@@ -3,8 +3,7 @@
 **This is a curated copy**, not the source of truth. It was generated from the suite's central
 `ai-suite-docs` repository so that `baseaicore` can be read, reviewed and implemented **without**
 checking out the other eight repositories. If this documentation set and the central one ever
-disagree, the central `ai-suite-docs` repository wins — treat a disagreement here as staleness to be
-refreshed, not as a second opinion to reconcile.
+disagree, the central `ai-suite-docs` repository wins — treat a disagreement here as staleness to be refreshed, not as a second opinion to reconcile.
 
 The directory layout below **mirrors the master `docs/` tree exactly** (`apps/<name>/`,
 `packages/<name>/`, `standards/`, `adr/`, `architecture/`, `roadmap/`), so every relative link inside
@@ -38,11 +37,12 @@ a copied document (`../../adr/...`, `../../standards/...`) resolves correctly he
 ### Suite-wide standards (13 files)
 Every file in [standards/](standards/) — these apply to all nine repositories identically.
 
-### Architecture Decision Records (30 files)
+### Architecture Decision Records (31 files)
 The complete ADR set in [adr/](adr/README.md), including the eight added by the post-freeze audit
-(0022–0029) and the seven amended by it. A component only *acts on* the ADRs its own spec and
-development plan reference, but the full set is included because ADRs cross-reference each other and
-a partial set would have dangling links.
+(0022–0029), the seven amended by it, and [ADR-0030](adr/0030-model-cost-and-pricing.md) (model cost
+and pricing), added when cost was brought forward into Phase 1. A component only *acts on* the ADRs
+its own spec and development plan reference, but the full set is included because ADRs
+cross-reference each other and a partial set would have dangling links.
 
 ### Cross-cutting architecture (9 files)
 The complete [architecture/](architecture/master-architecture.md) set: canonical model identity,
