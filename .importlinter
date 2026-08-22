@@ -1,0 +1,18 @@
+[importlinter]
+root_packages = baseaicore
+
+[importlinter:contract:no-application-imports]
+name = BaseAiCore must not import applications
+type = forbidden
+source_modules = baseaicore
+forbidden_modules =
+    freeweight
+    loadcoach
+    ideapress
+
+[importlinter:contract:no-sibling-packages]
+name = BaseAiCore must not import sibling capability packages
+type = forbidden
+source_modules = baseaicore
+forbidden_modules =
+    # (none)
