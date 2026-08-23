@@ -26,7 +26,9 @@ from baseaicore.cost import (
 from baseaicore.hashing import canonical_json
 from baseaicore.identity import ModelIdentity, ProviderKind
 from baseaicore.ids import new_id
+from baseaicore.machine import GpuProfile, GpuVendor, compute_machine_fingerprint
 from baseaicore.money import Money
+from baseaicore.runtime import RuntimeProfile
 from baseaicore.timeutil import elapsed_ms, monotonic_ns
 
 pytestmark = pytest.mark.performance
@@ -52,6 +54,16 @@ _USAGE = TokenUsage(
 _TEN_KB_STRUCTURE = {
     f"key_{index:04d}": [index, float(index), f"value_{index}"] for index in range(300)
 }
+_GPUS = (
+    GpuProfile(
+        index=0,
+        name="NVIDIA GeForce RTX 5060 Ti",
+        uuid="GPU-1f3a9c4e-2b70-a1b2-c3d4-e5f607182930",
+        vram_total_bytes=16 * 1024**3,
+        driver_version="580.65.06",
+        vendor=GpuVendor.NVIDIA,
+    ),
+)
 
 
 def mean_microseconds(operation: Callable[[], object]) -> float:
@@ -88,6 +100,30 @@ def test_pricing_hash_is_within_budget() -> None:
 
 def test_estimate_cost_is_within_budget() -> None:
     assert mean_microseconds(lambda: estimate_cost(_USAGE, _PRICING, at=AT)) <= 20.0
+
+
+def test_profile_hash_is_within_budget() -> None:
+    # On a fresh profile each time, so the instance cache never hides the real cost.
+    def compute() -> str:
+        return RuntimeProfile(context_size=32_768, kv_cache_precision="q8_0").profile_hash
+
+    assert mean_microseconds(compute) <= 50.0
+
+
+def test_machine_fingerprint_is_within_budget() -> None:
+    def compute() -> str:
+        return compute_machine_fingerprint(
+            hostname="workstation",
+            os_name="Linux",
+            architecture="x86_64",
+            cpu_model="AMD Ryzen 9 9950X 16-Core Processor",
+            physical_cores=16,
+            logical_cores=32,
+            ram_bytes=64 * 1024**3,
+            gpus=_GPUS,
+        )
+
+    assert mean_microseconds(compute) <= 100.0
 
 
 def test_canonical_json_on_a_ten_kilobyte_structure_is_within_budget() -> None:
