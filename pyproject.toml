@@ -33,8 +33,9 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "docs/"
-Changelog = "CHANGELOG.md"
+Homepage = "https://github.com/JPKell/BaseAiCore"
+Documentation = "https://github.com/JPKell/BaseAiCore/tree/main/docs"
+Changelog = "https://github.com/JPKell/BaseAiCore/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "src/baseaicore/__about__.py"
