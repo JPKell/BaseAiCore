@@ -7,6 +7,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Added
+- `requirements/ci.lock` and `requirements/release.lock`: exact, hash-verified pins for this
+  repository's own CI and release pipeline, required by Packaging and Release Standards §4 and
+  Security Standards §11. `requirements/README.md` documents what they are for, what they are
+  deliberately *not* for (a consumer still resolves the ranges in `pyproject.toml`), and how to
+  regenerate them.
+
+### Changed
+- CI and the release workflow install the locked sets instead of re-resolving on every run, and
+  build with `--no-isolation` so the build backend comes from `release.lock` too. The Python 3.14
+  early-warning job still resolves from ranges, because pinning versions that have no 3.14 wheels
+  would defeat the point of an early warning.
+- CI installs the built distribution rather than an editable checkout, per Packaging Standards §4.
+  Coverage is therefore configured by importable name with a `paths` mapping, so it measures the
+  package wherever it is installed; the previous source-path configuration silently reported 0%
+  against a non-editable install.
+- The `security` job now runs `pip-audit` against both lockfiles. It previously ran bare, which
+  audited an environment containing only `pip-audit` itself and could never have reported anything.
+
+### Security
+- `pytest` moved from `>=8,<9` to `>=9.0.3,<10`, excluding PYSEC-2026-1845 (vulnerable
+  `/tmp/pytest-of-{user}` handling, local denial of service or privilege escalation, affecting
+  pytest through 9.0.2). Found by auditing the new lockfile; the suite passes unchanged on
+  pytest 9.
+
 ## [0.4.0] — 2026-08-22
 
 Phase 4 of the [development plan](docs/packages/baseaicore/development-plan.md): capability

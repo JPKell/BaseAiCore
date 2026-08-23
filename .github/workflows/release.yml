@@ -18,8 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install build twine
-      - run: python -m build
+      - run: pip install --require-hashes -r requirements/release.lock
+      - run: python -m build --no-isolation
       - run: twine check dist/*
       - run: pip install "dist/$(ls dist | grep .whl)[dev]"
       - run: pytest -m "not live and not performance"
@@ -41,8 +41,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install build twine
-      - run: python -m build
+      - run: pip install --require-hashes -r requirements/release.lock
+      - run: python -m build --no-isolation
       - run: twine check dist/*
       - run: pip install "dist/$(ls dist | grep .whl)[dev]"
       - run: pytest -m "not live and not performance"
