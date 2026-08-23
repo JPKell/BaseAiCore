@@ -1,8 +1,9 @@
 # BaseAiCore — Specification
 
 **Type:** Python package · **Import/distribution name:** `baseaicore` · **Layer:** 1 (domain foundation)
-**Status:** Phase 1 implemented (measurement, identity, IDs, time, hashing, errors, money and
-cost). Phases 2–4 specified, not implemented.
+**Status:** Phases 1–2 implemented (measurement, identity, IDs, time, hashing, errors, money and
+cost; model descriptor, runtime profile and measurement subject). Phases 3–4 specified, not
+implemented.
 
 ---
 

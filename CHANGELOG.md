@@ -7,6 +7,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-22
+
+Phase 2 of the [development plan](docs/packages/baseaicore/development-plan.md): the model
+descriptor, the runtime profile and the measurement subject — the suite can now describe a model,
+describe how it is being run, and decide whether two measurements are comparable.
+
+### Added
+- `descriptor`: `ModelCapabilityFlag` and `ModelDescriptor` — refreshable architecture metadata
+  (family, quantization, layer/head counts, …) kept separate from `ModelIdentity`. Every optional
+  numeric field accepts `UNSUPPORTED`; `raw` is preserved untouched
+  ([Canonical Model Identity](docs/architecture/canonical-model-identity.md) §3).
+- `runtime`: `RuntimeProfile` and its `profile_hash` — SHA-256 over the canonical JSON of every
+  non-`None` field, stable across processes and independent of field-construction order
+  ([ADR-0023](docs/adr/0023-runtime-profile-resolution.md)).
+- `subject`: `MetricKind`, `Comparability`, `ComparabilityVerdict` and `MeasurementSubject` with
+  `is_comparable_with`, implementing the full comparability matrix from
+  [Canonical Model Identity §5](docs/architecture/canonical-model-identity.md). Benchmark version
+  and dataset hashes are not subject fields; omitting them yields `indeterminate`, never
+  `comparable` by default.
+
+### Notes
+- 100 % line and branch coverage on the new modules; `mypy --strict`, `ruff` and `import-linter`
+  clean across the repository.
+- Not yet exported from `baseaicore.__init__`: curating the public surface is Phase 4 work, so
+  these three modules are implemented but still imported directly
+  (`from baseaicore.descriptor import ModelDescriptor`, etc.) rather than from the package root.
+- Machine profile and capability IDs arrive in Phases 3–4.
+
 ## [0.1.0] — 2026-08-22
 
 Phase 1 of the [development plan](docs/packages/baseaicore/development-plan.md): measurement,
