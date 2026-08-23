@@ -7,6 +7,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-22
+
+Phase 4 of the [development plan](docs/packages/baseaicore/development-plan.md): capability
+identifiers and the API freeze — the vocabulary type exists, the public API is complete for the
+suite's first consumers, and the package is ready to publish. This completes BaseAiCore's
+development plan.
+
+### Added
+- `capability`: `CapabilityId`, a syntactically validated vocabulary term (`root[.specialization]*`,
+  lowercase `[a-z][a-z0-9_]*` segments joined by `.`, at most 64 characters), with `root`,
+  `is_specialization` and `inherits_from` implementing the specialization-inheritance relationship
+  ([spec §7](docs/packages/baseaicore/spec.md)). The vocabulary's *contents* and their version
+  remain SetSpec's; this package owns only the shape.
+- `docs/quickstart.md`: a guided, executable walk through every public type.
+- `docs/api.md`: an API reference generated from the live public docstrings by the new
+  `scripts/generate_api_reference.py` (stdlib-only, matching the zero-dependency policy).
+
+### Changed
+- `baseaicore.__init__` now curates and exports the **complete** public surface: the Phase 2–3
+  types (`ModelDescriptor`, `ModelCapabilityFlag`, `RuntimeProfile`, `MeasurementSubject`,
+  `MetricKind`, `Comparability`, `ComparabilityVerdict`, `GpuProfile`, `GpuVendor`,
+  `MachineProfile`, `StorageDevice`, `compute_machine_fingerprint`) and the new `CapabilityId` are
+  all importable directly from `baseaicore`, ending the "import from the submodule" stopgap that
+  0.1.0–0.3.0 documented.
+- README and `docs/packages/baseaicore/spec.md` updated to reflect the completed development plan.
+
+### Notes
+- `inherits_from` is reflexive by design: `x.inherits_from(x)` is `True`, so a task profile
+  requiring exactly one capability is satisfied by evidence recorded against that capability
+  itself, with no special case at the call site. A specialization inherits from every ancestor
+  along its dotted path; a root never inherits from its own specialization.
+- The 64-character length ceiling is this package's own choice, not one fixed by an ADR or the
+  spec — the spec only requires that "over-long" be refused with one documented, tested meaning.
+- A public-API boundary test (`tests/test_packaging.py`) now asserts that a module-private helper
+  (e.g. `errors._rebuild_error`) is *not* reachable from the package root, proving the curation
+  claim rather than trusting it.
+- 100 % line and branch coverage; `mypy --strict`, `ruff` and `import-linter` clean across the
+  repository.
+- Not yet done: publishing `0.4.0` to TestPyPI and PyPI via Trusted Publishing. That is a tag-push
+  (`git tag -a v0.4.0 && git push --tags`), which triggers `.github/workflows/release.yml` — a
+  real, externally visible action this change does not take on its own
+  ([Packaging and Release Standards §6](docs/standards/packaging-and-release-standards.md)).
+
 ## [0.3.0] — 2026-08-22
 
 Phase 3 of the [development plan](docs/packages/baseaicore/development-plan.md): machine identity —

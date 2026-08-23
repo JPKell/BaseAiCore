@@ -71,6 +71,9 @@ select = [
 # S311: seeded `random.Random` is how testing-standards.md §4 requires randomness to be made
 # reproducible. Nothing in tests is cryptographic.
 "tests/**" = ["S101", "D1", "PLR2004", "ANN401", "S311"]
+# T201: scripts/ holds standalone CLI tools (doc regeneration); reporting what they did on stdout
+# is their job, the exact carve-out coding-standards.md §11 names ("no print outside CLI rendering").
+"scripts/**" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

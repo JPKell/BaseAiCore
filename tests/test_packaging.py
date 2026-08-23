@@ -31,6 +31,22 @@ EXPECTED_PUBLIC_API = {
     "ModelIdentity",
     "ProviderKind",
     "normalize_digest",
+    # Descriptor, runtime profile and measurement subject (Phase 2)
+    "Comparability",
+    "ComparabilityVerdict",
+    "MeasurementSubject",
+    "MetricKind",
+    "ModelCapabilityFlag",
+    "ModelDescriptor",
+    "RuntimeProfile",
+    # Machine profile and fingerprint (Phase 3)
+    "GpuProfile",
+    "GpuVendor",
+    "MachineProfile",
+    "StorageDevice",
+    "compute_machine_fingerprint",
+    # Capability identifiers (Phase 4)
+    "CapabilityId",
     # Money and cost
     "NANOS_PER_UNIT",
     "TOKENS_PER_RATE_UNIT",
@@ -89,6 +105,29 @@ def test_all_lists_each_name_once() -> None:
     # Ordering is enforced by ruff's RUF022 (constants, then classes, then functions); this test
     # covers the thing a linter cannot see — a name exported twice from two modules.
     assert len(baseaicore.__all__) == len(set(baseaicore.__all__))
+
+
+@pytest.mark.contract
+def test_a_modules_private_helper_never_reaches_the_public_surface() -> None:
+    """Prove the Phase 4 curation boundary rather than trust it.
+
+    Curating ``__init__`` means a private name stays reachable only from its own module, never as
+    a shortcut off the package root.
+    """
+    assert not hasattr(baseaicore, "_rebuild_error")  # private to baseaicore.errors
+    assert not hasattr(baseaicore, "_SEGMENT_PATTERN")  # private to baseaicore.capability
+
+
+@pytest.mark.contract
+def test_every_public_class_has_a_docstring() -> None:
+    """Spec §20 acceptance criterion 7: every public symbol states its contract."""
+    undocumented = [
+        name
+        for name in baseaicore.__all__
+        if isinstance(getattr(baseaicore, name), type) and not getattr(baseaicore, name).__doc__
+    ]
+
+    assert undocumented == []
 
 
 @pytest.mark.contract
@@ -154,6 +193,27 @@ def test_the_five_line_script_from_the_spec_works() -> None:
 
     assert identity.canonical_id == "ollama/qwen3.5:9b-q8_0@unknown"
     assert is_supported(UNSUPPORTED) is False
+
+
+def test_capability_ids_and_the_phase_2_3_types_are_reachable_from_the_package_root() -> None:
+    """Confirm the Phase 4 surface curation.
+
+    These no longer require the direct-submodule import that earlier releases documented as a
+    stopgap.
+    """
+    from baseaicore import (  # noqa: PLC0415 — importing it here is what the script does
+        CapabilityId,
+        MachineProfile,
+        ModelDescriptor,
+        RuntimeProfile,
+    )
+
+    capability = CapabilityId("coding.python")
+
+    assert capability.root == "coding"
+    assert capability.is_specialization is True
+    assert capability.inherits_from(CapabilityId("coding")) is True
+    assert {ModelDescriptor, RuntimeProfile, MachineProfile}  # importable, nothing more to prove
 
 
 def test_the_cost_acceptance_criterion_holds_end_to_end() -> None:

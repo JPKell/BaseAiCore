@@ -116,5 +116,14 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/download-artifact@v4
         with: { name: dist, path: dist/ }
-      - run: pip install dist/*.whl
+      - run: pip install dist/*.whl mypy
       - run: python -c "import baseaicore"
+      - name: py.typed ships in the wheel
+        run: |
+          python -c "
+          import pathlib, baseaicore
+          marker = pathlib.Path(baseaicore.__file__).parent / 'py.typed'
+          assert marker.is_file(), 'py.typed missing from the installed wheel'
+          "
+      - name: mypy sees the types from a consumer project
+        run: mypy --strict scripts/consumer_typecheck_example.py

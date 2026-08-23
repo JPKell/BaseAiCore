@@ -4,12 +4,11 @@ Layer 1: pure domain types with no I/O, no configuration, no logging and no thir
 dependencies. If two components would otherwise invent the same concept twice, and that concept is
 pure vocabulary, it belongs here.
 
-What is exported below is the public API. Anything not listed in ``__all__`` is private and may
+What is exported below is the public API, complete as of Phase 4
+(``docs/packages/baseaicore/development-plan.md``): measurement, identity, IDs, time, hashing,
+errors, money and cost; model descriptor, runtime profile and measurement subject; machine profile
+and fingerprint; capability identifiers. Anything not listed in ``__all__`` is private and may
 change without a version bump, whatever its module happens to be named.
-
-Phase 1 (this release) ships measurement, identity, IDs, time, hashing, errors, money and cost.
-Descriptors, runtime profiles, measurement subjects, machine profiles and capability IDs arrive in
-later phases — see ``docs/packages/baseaicore/development-plan.md``.
 
     >>> from baseaicore import ModelIdentity, ProviderKind
     >>> identity = ModelIdentity(ProviderKind.OLLAMA, "qwen3.5:9b-q8_0")
@@ -20,6 +19,7 @@ later phases — see ``docs/packages/baseaicore/development-plan.md``.
 from __future__ import annotations
 
 from baseaicore.__about__ import __version__
+from baseaicore.capability import CapabilityId
 from baseaicore.cost import (
     TOKENS_PER_RATE_UNIT,
     CostEstimate,
@@ -30,6 +30,7 @@ from baseaicore.cost import (
     TokenUsage,
     estimate_cost,
 )
+from baseaicore.descriptor import ModelCapabilityFlag, ModelDescriptor
 from baseaicore.errors import (
     ConfigurationError,
     ConflictError,
@@ -48,6 +49,13 @@ from baseaicore.identity import (
     normalize_digest,
 )
 from baseaicore.ids import RandomnessSource, UlidGenerator, UlidParts, new_id, parse_id
+from baseaicore.machine import (
+    GpuProfile,
+    GpuVendor,
+    MachineProfile,
+    StorageDevice,
+    compute_machine_fingerprint,
+)
 from baseaicore.measurement import (
     UNSUPPORTED,
     Measurement,
@@ -56,6 +64,8 @@ from baseaicore.measurement import (
     supported_values,
 )
 from baseaicore.money import NANOS_PER_UNIT, Money, normalize_currency
+from baseaicore.runtime import RuntimeProfile
+from baseaicore.subject import Comparability, ComparabilityVerdict, MeasurementSubject, MetricKind
 from baseaicore.timeutil import (
     Clock,
     elapsed_ms,
@@ -69,13 +79,23 @@ __all__ = [
     "NANOS_PER_UNIT",
     "TOKENS_PER_RATE_UNIT",
     "UNSUPPORTED",
+    "CapabilityId",
     "Clock",
+    "Comparability",
+    "ComparabilityVerdict",
     "ConfigurationError",
     "ConflictError",
     "CostEstimate",
     "DependencyUnavailableError",
+    "GpuProfile",
+    "GpuVendor",
     "IdentityConfidence",
+    "MachineProfile",
     "Measurement",
+    "MeasurementSubject",
+    "MetricKind",
+    "ModelCapabilityFlag",
+    "ModelDescriptor",
     "ModelIdentity",
     "ModelPricing",
     "Money",
@@ -83,6 +103,8 @@ __all__ = [
     "PricingSource",
     "ProviderKind",
     "RandomnessSource",
+    "RuntimeProfile",
+    "StorageDevice",
     "SuiteError",
     "TokenCount",
     "TokenRates",
@@ -95,6 +117,7 @@ __all__ = [
     "ValidationError",
     "__version__",
     "canonical_json",
+    "compute_machine_fingerprint",
     "elapsed_ms",
     "estimate_cost",
     "from_rfc3339",

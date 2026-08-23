@@ -1,9 +1,10 @@
 # BaseAiCore — Specification
 
 **Type:** Python package · **Import/distribution name:** `baseaicore` · **Layer:** 1 (domain foundation)
-**Status:** Phases 1–3 implemented (measurement, identity, IDs, time, hashing, errors, money and
-cost; model descriptor, runtime profile and measurement subject; machine profile and fingerprint).
-Phase 4 — capability identifiers and the curated public surface — is specified, not implemented.
+**Status:** Phases 1–4 implemented (measurement, identity, IDs, time, hashing, errors, money and
+cost; model descriptor, runtime profile and measurement subject; machine profile and fingerprint;
+capability identifiers and the curated public surface). This development plan is complete;
+`baseaicore 0.4.0` is the package's first consumer-ready release.
 
 ---
 
