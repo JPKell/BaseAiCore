@@ -3,7 +3,7 @@
 All notable changes to `baseaicore` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/), pre-1.0 per
-`docs/standards/packaging-and-release-standards.md` §3.
+packaging and release standards §3.
 
 ## [Unreleased]
 
@@ -73,7 +73,7 @@ development plan.
 - Not yet done: publishing `0.4.0` to TestPyPI and PyPI via Trusted Publishing. That is a tag-push
   (`git tag -a v0.4.0 && git push --tags`), which triggers `.github/workflows/release.yml` — a
   real, externally visible action this change does not take on its own
-  ([Packaging and Release Standards §6](docs/standards/packaging-and-release-standards.md)).
+  (Packaging and Release Standards §6).
 
 ## [0.3.0] — 2026-08-22
 
@@ -83,7 +83,7 @@ a machine can be identified stably, and that identity survives a driver upgrade.
 ### Added
 - `machine`: `GpuVendor`, `GpuProfile`, `StorageDevice`, `MachineProfile` and
   `compute_machine_fingerprint`, implementing
-  [Machine Identity §1–3](docs/architecture/machine-identity-and-reproducibility.md). The
+  Machine Identity §1–3. The
   fingerprint is 64 hex characters over the canonical JSON of hostname, OS name, architecture, CPU
   model, core counts, RAM size and the GPU set.
 - The inclusion/exclusion policy is documented in the module docstring **and** asserted by tests:
@@ -93,7 +93,7 @@ a machine can be identified stably, and that identity survives a driver upgrade.
 ### Notes
 - Unreported fields hash as the literal `"unsupported"`, whether they arrived as `None` (strings)
   or as `UNSUPPORTED` (quantities), so a machine that cannot report its CPU model still has exactly
-  one stable identity ([ADR-0016](docs/adr/0016-unavailable-is-not-zero.md)).
+  one stable identity (ADR-0016).
 - Two normalizations exist solely to stop one machine from having two identities: surrounding
   whitespace is stripped, and a whole-valued `float` quantity hashes as the equal `int`. Both are
   tested. This is deliberately the opposite of the rule for a *model* name, which must round-trip
@@ -122,13 +122,13 @@ describe how it is being run, and decide whether two measurements are comparable
 - `descriptor`: `ModelCapabilityFlag` and `ModelDescriptor` — refreshable architecture metadata
   (family, quantization, layer/head counts, …) kept separate from `ModelIdentity`. Every optional
   numeric field accepts `UNSUPPORTED`; `raw` is preserved untouched
-  ([Canonical Model Identity](docs/architecture/canonical-model-identity.md) §3).
+  (Canonical Model Identity §3).
 - `runtime`: `RuntimeProfile` and its `profile_hash` — SHA-256 over the canonical JSON of every
   non-`None` field, stable across processes and independent of field-construction order
-  ([ADR-0023](docs/adr/0023-runtime-profile-resolution.md)).
+  (ADR-0023).
 - `subject`: `MetricKind`, `Comparability`, `ComparabilityVerdict` and `MeasurementSubject` with
   `is_comparable_with`, implementing the full comparability matrix from
-  [Canonical Model Identity §5](docs/architecture/canonical-model-identity.md). Benchmark version
+  Canonical Model Identity §5. Benchmark version
   and dataset hashes are not subject fields; omitting them yields `indeterminate`, never
   `comparable` by default.
 
@@ -149,16 +149,16 @@ identity, IDs, time, hashing, errors — plus money and cost, brought forward in
 - `measurement`: the `Unsupported` sentinel and its `UNSUPPORTED` singleton, the `Measurement`
   type, `is_supported` and `supported_values`. Every numeric, truthiness and ordering operation on
   the sentinel raises, so `value or 0` cannot turn an absent measurement into a real-looking
-  number ([ADR-0016](docs/adr/0016-unavailable-is-not-zero.md)).
+  number (ADR-0016).
 - `identity`: `ProviderKind`, `IdentityConfidence`, `ModelIdentity`, `normalize_digest`. The
   canonical-ID format `{kind}/{name}@sha256:<12 hex>` is fixed by golden tests
-  ([ADR-0024](docs/adr/0024-canonical-id-and-model-references.md)).
+  (ADR-0024).
 - `money`: `Money` as exact integer nanos in a named currency, and `normalize_currency`. No floats;
   cross-currency arithmetic and comparison raise rather than assuming an exchange rate.
 - `cost`: `TokenUsage`, `PricingSource`, `TokenRates`, `ModelPricing`, `CostEstimate` and
   `estimate_cost`. A price is a dated, sourced observation with a validity window and a stable
   `pricing_hash`; an unknown price costs `UNSUPPORTED` with a reason, never zero
-  ([ADR-0030](docs/adr/0030-model-cost-and-pricing.md), new in this release).
+  (ADR-0030, new in this release).
 - `ids`: `UlidGenerator`, `new_id`, `parse_id`, `UlidParts` — monotonic within a millisecond and
   thread-safe, with no third-party ULID dependency.
 - `timeutil`: `utc_now`, `to_rfc3339`, `from_rfc3339`, the `Clock` type, `monotonic_ns` and

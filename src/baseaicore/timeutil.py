@@ -4,7 +4,7 @@ Imports no framework and performs no I/O beyond reading the system clock in :fun
 the monotonic counter in :func:`monotonic_ns`.
 
 Two kinds of time live here and are never interchanged
-(``docs/standards/coding-standards.md`` §5): a **timestamp** is a timezone-aware
+(coding standards §5): a **timestamp** is a timezone-aware
 :class:`datetime.datetime` in UTC and answers "when did this happen?"; a **duration** comes from
 :func:`time.perf_counter_ns` and answers "how long did it take?". Subtracting two wall-clock
 timestamps to time an operation is a defect — the wall clock can step backwards during an NTP
@@ -36,7 +36,7 @@ type Clock = Callable[[], datetime]
 
 Domain and service code takes a ``Clock`` parameter defaulting to :func:`utc_now` rather than
 calling :func:`datetime.datetime.now` directly, so every time-dependent behaviour is testable
-without patching the interpreter (``docs/standards/coding-standards.md`` §5).
+without patching the interpreter (coding standards §5).
 """
 
 _NANOSECONDS_PER_MILLISECOND = 1_000_000

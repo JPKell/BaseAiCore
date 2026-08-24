@@ -5,7 +5,7 @@ Imports no framework and performs no I/O.
 The same weights under different runtime settings are a different measurement subject: KV-cache
 precision, context size and GPU-layer placement move memory and speed metrics by factors, not by
 percentages
-([Canonical Model Identity §4](../../docs/architecture/canonical-model-identity.md)). Sampling
+(Canonical Model Identity §4). Sampling
 parameters (temperature, top_p, seed, stop sequences, …) are **not** part of a runtime profile —
 they change per request and are recorded on the sample/job, not on how the model is loaded and
 served.
@@ -32,7 +32,7 @@ class RuntimeProfile:
 
     Every field is optional: ``RuntimeProfile()`` with everything at its default means "provider
     defaults" and is itself a legal, hashable profile — there is no "no profile" state
-    ([ADR-0023](../../docs/adr/0023-runtime-profile-resolution.md) §1).
+    (ADR-0023 §1).
 
     Immutable and hashable. ``profile_hash`` is computed lazily and cached on the instance.
 

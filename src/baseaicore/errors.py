@@ -34,7 +34,7 @@ class SuiteError(Exception):
     that cannot be aggregated.
 
     ``details`` must never contain a secret, a prompt or generated content
-    (``docs/standards/security-standards.md``); it travels into API error envelopes.
+    (security standards); it travels into API error envelopes.
 
     Attributes:
         code: Stable machine-readable identifier, shared by every instance of the class.
@@ -50,7 +50,7 @@ class SuiteError(Exception):
 
         Args:
             message: What failed, what was expected, and what the caller can do about it. A bare
-                "invalid" is a defect (``docs/standards/coding-standards.md`` §6).
+                "invalid" is a defect (coding standards §6).
             details: Structured context. Copied, so later mutation of the caller's dict cannot
                 change the raised error.
         """

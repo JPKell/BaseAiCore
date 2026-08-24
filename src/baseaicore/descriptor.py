@@ -5,7 +5,7 @@ Imports no framework and performs no I/O.
 Kept separate from ``ModelIdentity``: identity answers "which weights?" and never changes shape
 across a refresh, while a descriptor answers "what does the provider currently say about these
 weights?" and is expected to be re-read
-([Canonical Model Identity §3](../../docs/architecture/canonical-model-identity.md)). A benchmark
+(Canonical Model Identity §3). A benchmark
 result keeps the descriptor snapshot it was produced with; a later refresh never rewrites history
 (same document, §7 rule 4).
 """
@@ -34,7 +34,7 @@ class ModelCapabilityFlag(StrEnum):
 
     FreeWeight's benchmark results record what a model can *demonstrably* do; this flag records
     only what the provider *says* it can do. The two are never conflated
-    (``docs/architecture/canonical-model-identity.md`` §3).
+    (canonical model identity §3).
     """
 
     TOOLS = "tools"
@@ -71,7 +71,7 @@ class ModelDescriptor:
         size_bytes: On-disk size of the weights.
         max_context: The context length the model *advertises*. Not the context a provider is
             actually configured to serve — that is a runtime concern, ``served_context``
-            ([ADR-0023](../../docs/adr/0023-runtime-profile-resolution.md) §4).
+            (ADR-0023 §4).
         embedding_dim: Hidden/embedding dimension.
         layers: Transformer layer count.
         attention_heads: Attention head count.
@@ -85,7 +85,7 @@ class ModelDescriptor:
         license_text: The model's license, if the provider exposes one.
         raw: The untouched provider response. Preserved for diagnostics and for extracting fields
             the normalizer does not yet know about. Nothing above ModelRack may read this for
-            business logic (``docs/architecture/canonical-model-identity.md`` §3).
+            business logic (canonical model identity §3).
     """
 
     identity: ModelIdentity

@@ -7,7 +7,7 @@ float. Token prices are quoted per million tokens and run to tiny fractions of a
 (``$0.019`` per million tokens is 19 nanos per token), and floats neither sum associatively nor
 compare reliably at that scale. A cost column that disagrees with the sum of its own rows is the
 same class of defect as a fabricated measurement
-([ADR-0030](../../docs/adr/0030-model-cost-and-pricing.md) §2).
+(ADR-0030 §2).
 
 There is no currency conversion in this module and there never will be: converting requires an
 exchange rate, which is time-varying external data outside the user's control. Every cross-

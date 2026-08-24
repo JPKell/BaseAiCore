@@ -59,7 +59,7 @@ quote-style = "double"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
-# The rule set named in docs/standards/coding-standards.md §11. Identical in every suite repository
+# The rule set named in coding standards §11. Identical in every suite repository
 # so that a file moving between them does not change meaning.
 select = [
     "E", "W", "F", "I", "N", "D", "UP", "ANN", "B", "A", "C4", "DTZ", "T20",

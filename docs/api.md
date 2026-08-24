@@ -127,7 +127,7 @@ why the driver and toolkit versions do not.
 Attributes:
     index: The device's enumeration position, ``0``-based. Also the value FreeWeight and
         LoadCoach attribute a per-device measurement to
-        ([ADR-0027](../../docs/adr/0027-multi-gpu-semantics.md)).
+        (ADR-0027).
     uuid: The device's stable hardware identifier, unchanged across reboots and across
         re-enumeration. This is the GPU's real identity; ``index`` is only where it happened to
         be enumerated this boot. ``None`` when the collector could not read one.
@@ -159,7 +159,7 @@ Stored alongside every measurement. A ``NAME_ONLY`` result carries a permanent c
 provider exposed no digest, so it can never be proven later to describe the same weights —
 a tag such as ``qwen3.5:latest`` can be repointed at any time. LoadCoach reduces evidence
 confidence for it and FreeWeight shows it in the UI
-([ADR-0017](../../docs/adr/0017-benchmark-confidence-and-freshness.md)).
+(ADR-0017).
 
 ### `MachineProfile`
 
@@ -191,7 +191,7 @@ Attributes:
     logical_cores: Logical core count, hyperthreads included.
     ram_bytes: Total system memory.
     gpus: Every visible GPU. A tuple, and never summed across
-        ([ADR-0027](../../docs/adr/0027-multi-gpu-semantics.md)).
+        (ADR-0027).
     storage: Attached storage devices. Provenance only; excluded from the fingerprint.
     python_version: The interpreter that produced the measurement. Application environment
         rather than machine identity, so it is recorded here and excluded from the fingerprint.
@@ -243,7 +243,7 @@ A capability a provider *claims* a model has, distinct from a measured capabilit
 
 FreeWeight's benchmark results record what a model can *demonstrably* do; this flag records
 only what the provider *says* it can do. The two are never conflated
-(``docs/architecture/canonical-model-identity.md`` §3).
+(canonical model identity §3).
 
 ### `ModelDescriptor`
 
@@ -274,7 +274,7 @@ Attributes:
     size_bytes: On-disk size of the weights.
     max_context: The context length the model *advertises*. Not the context a provider is
         actually configured to serve — that is a runtime concern, ``served_context``
-        ([ADR-0023](../../docs/adr/0023-runtime-profile-resolution.md) §4).
+        (ADR-0023 §4).
     embedding_dim: Hidden/embedding dimension.
     layers: Transformer layer count.
     attention_heads: Attention head count.
@@ -288,7 +288,7 @@ Attributes:
     license_text: The model's license, if the provider exposes one.
     raw: The untouched provider response. Preserved for diagnostics and for extracting fields
         the normalizer does not yet know about. Nothing above ModelRack may read this for
-        business logic (``docs/architecture/canonical-model-identity.md`` §3).
+        business logic (canonical model identity §3).
 
 ### `ModelIdentity`
 
@@ -437,7 +437,7 @@ How a provider is asked to load and serve a model. Hashes to a stable key.
 
 Every field is optional: ``RuntimeProfile()`` with everything at its default means "provider
 defaults" and is itself a legal, hashable profile — there is no "no profile" state
-([ADR-0023](../../docs/adr/0023-runtime-profile-resolution.md) §1).
+(ADR-0023 §1).
 
 Immutable and hashable. ``profile_hash`` is computed lazily and cached on the instance.
 
@@ -487,7 +487,7 @@ message is for humans and ``details`` is for machines, and mixing the two produc
 that cannot be aggregated.
 
 ``details`` must never contain a secret, a prompt or generated content
-(``docs/standards/security-standards.md``); it travels into API error envelopes.
+(security standards); it travels into API error envelopes.
 
 Attributes:
     code: Stable machine-readable identifier, shared by every instance of the class.
@@ -623,7 +623,7 @@ Boolean, numeric and ordering coercion all raise :class:`TypeError` on purpose. 
 this guards against is ``value or 0`` / ``value + x`` quietly turning "not measurable" into a
 real-looking number — the most damaging bug class in a measurement system, because the result
 is indistinguishable from a real reading once it reaches an average, a chart or a routing
-decision ([ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md)).
+decision (ADR-0016).
 
 Equality and hashing are *not* refused. They are identity-based and total: ``UNSUPPORTED ==
 UNSUPPORTED`` is ``True``, ``UNSUPPORTED == 0`` is ``False``, and the sentinel can sit inside
@@ -695,20 +695,20 @@ Accepted values and their canonical forms:
   normalized to ``0.0``; ``nan`` and ``±inf`` are refused, since they are not JSON and a
   ``nan`` reaching a hash is a fabricated measurement in disguise.
 * :data:`~baseaicore.measurement.UNSUPPORTED` — the string ``"unsupported"``, fixed by
-  [ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md) §4. Never ``null``, never ``0``.
+  ADR-0016 §4. Never ``null``, never ``0``.
 * :class:`~enum.Enum` — its value, serialized by these same rules.
 * :class:`~datetime.datetime` — RFC 3339 with millisecond precision (:func:`to_rfc3339`), so
   it must be timezone-aware.
 
 Everything else is refused, including :class:`~decimal.Decimal` (``Decimal("3.0")`` and
 ``Decimal("3.00")`` are equal but serialize differently, so hashing one would depend on how it
-was typed — see [ADR-0030](../../docs/adr/0030-model-cost-and-pricing.md); convert to
+was typed — see ADR-0030; convert to
 :class:`~baseaicore.money.Money` or to a string first), ``bytes``, ``set`` and arbitrary
 objects.
 
 Strings are **not** Unicode-normalized. Two visually identical names in NFC and NFD hash
 differently, which is deliberate: a provider's model name must round-trip byte-exactly
-(``docs/architecture/canonical-model-identity.md`` §2), and silently normalizing it here would
+(canonical model identity §2), and silently normalizing it here would
 make the hash disagree with the equality of the object it came from.
 
 Args:
@@ -724,7 +724,7 @@ Raises:
 Security:
     Never call this on a structure containing a secret. Its output is what gets hashed,
     logged, stored and exported, and it makes no attempt to redact
-    (``docs/standards/security-standards.md``).
+    (security standards).
 
 ### `compute_machine_fingerprint(*, hostname: 'str | None', os_name: 'str | None', architecture: 'str | None', cpu_model: 'str | None', physical_cores: 'Measurement', logical_cores: 'Measurement', ram_bytes: 'Measurement', gpus: 'Sequence[GpuProfile]') -> 'str'`
 

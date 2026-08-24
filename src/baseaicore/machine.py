@@ -8,10 +8,10 @@ Static identity and live utilization are deliberately separate types with separa
 machine profile that carried "VRAM currently used" would make every historical row that references
 it meaningless the moment that number changed, which is why utilization lives in SweatMeter's
 ``TelemetrySample`` and never here
-([Machine Identity §1](../../docs/architecture/machine-identity-and-reproducibility.md)).
+(Machine Identity §1).
 
 The fingerprint's policy — what identifies a machine, and what merely happens to be true of it
-today ([Machine Identity §3](../../docs/architecture/machine-identity-and-reproducibility.md)):
+today (Machine Identity §3):
 
 **Included**, because changing it changes what a measurement means: ``hostname``, ``os_name``,
 ``architecture``, ``cpu_model``, ``physical_cores``, ``logical_cores``, ``ram_bytes``, and the GPU
@@ -31,7 +31,7 @@ set as ``(name, uuid)`` per device.
 * *Container/VM identifiers* — not stable, and not meaningful on the primary deployment shape.
 
 The policy is inherited verbatim from the prior implementation, where it was the correct call
-([inventory §2.2](../../docs/inventory/legacy-material-inventory.md)); the tests in
+(inventory §2.2); the tests in
 ``tests/unit/test_machine.py`` assert each exclusion, so it stays a property of the code rather
 than a claim in prose.
 
@@ -95,7 +95,7 @@ class GpuProfile:
     Attributes:
         index: The device's enumeration position, ``0``-based. Also the value FreeWeight and
             LoadCoach attribute a per-device measurement to
-            ([ADR-0027](../../docs/adr/0027-multi-gpu-semantics.md)).
+            (ADR-0027).
         uuid: The device's stable hardware identifier, unchanged across reboots and across
             re-enumeration. This is the GPU's real identity; ``index`` is only where it happened to
             be enumerated this boot. ``None`` when the collector could not read one.
@@ -197,7 +197,7 @@ class MachineProfile:
         logical_cores: Logical core count, hyperthreads included.
         ram_bytes: Total system memory.
         gpus: Every visible GPU. A tuple, and never summed across
-            ([ADR-0027](../../docs/adr/0027-multi-gpu-semantics.md)).
+            (ADR-0027).
         storage: Attached storage devices. Provenance only; excluded from the fingerprint.
         python_version: The interpreter that produced the measurement. Application environment
             rather than machine identity, so it is recorded here and excluded from the fingerprint.

@@ -3,7 +3,7 @@
 Imports no framework and performs no I/O: this module defines what a price *is* and how to apply
 one, and never goes to find one. There is no bundled price catalogue and no provider lookup —
 acquisition belongs to ModelRack and the applications, which record a :class:`PricingSource` when
-they hand a record over ([ADR-0030](../../docs/adr/0030-model-cost-and-pricing.md)).
+they hand a record over (ADR-0030).
 
 Three ideas hold this module together, and each exists because model prices move for reasons the
 user does not control:
@@ -64,7 +64,7 @@ type TokenCount = int | Unsupported
 
 The whole-number restriction of :data:`~baseaicore.measurement.Measurement`: there is no such
 thing as half a token, and a provider that reports nothing must not be recorded as reporting zero
-([ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md)).
+(ADR-0016).
 """
 
 # The billable token classes, in the order they appear on every type here and in every result.

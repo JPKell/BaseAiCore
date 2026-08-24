@@ -5,7 +5,7 @@ Imports no framework and performs no I/O.
 A :class:`MeasurementSubject` is the triple every result is measured against: which weights, under
 what runtime settings, on which machine. Comparability follows from that triple alone for most of
 the matrix in
-[Canonical Model Identity §5](../../docs/architecture/canonical-model-identity.md); the two rows
+Canonical Model Identity §5; the two rows
 that additionally turn on the benchmark version and the dataset hash take those as explicit
 arguments to :meth:`MeasurementSubject.is_comparable_with`, because neither is part of a
 measurement subject. Omitting them yields :attr:`Comparability.INDETERMINATE`, never
@@ -138,7 +138,7 @@ class MeasurementSubject:
         """Decide whether a measurement on this subject may be compared with one on ``other``.
 
         Implements the matrix in
-        [Canonical Model Identity §5](../../docs/architecture/canonical-model-identity.md),
+        Canonical Model Identity §5,
         evaluated in this order — each condition is checked only once the ones before it have
         been ruled out, mirroring the table's own row order:
 

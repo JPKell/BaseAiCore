@@ -1,7 +1,7 @@
 """Domain module — the ``Unsupported`` sentinel and the ``Measurement`` type.
 
 Imports no framework and performs no I/O. This is the module that makes
-[ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md) enforceable rather than aspirational:
+ADR-0016 enforceable rather than aspirational:
 a measurement this environment cannot provide is a value that *refuses* to behave like a number,
 so the idioms that would fabricate one fail loudly at development time.
 """
@@ -29,7 +29,7 @@ class Unsupported:
     this guards against is ``value or 0`` / ``value + x`` quietly turning "not measurable" into a
     real-looking number — the most damaging bug class in a measurement system, because the result
     is indistinguishable from a real reading once it reaches an average, a chart or a routing
-    decision ([ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md)).
+    decision (ADR-0016).
 
     Equality and hashing are *not* refused. They are identity-based and total: ``UNSUPPORTED ==
     UNSUPPORTED`` is ``True``, ``UNSUPPORTED == 0`` is ``False``, and the sentinel can sit inside

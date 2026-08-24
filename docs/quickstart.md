@@ -60,7 +60,7 @@ print(verdict.comparability, verdict.reason)  # Comparability.SEPARATE, "differe
 
 A quality metric survives a runtime-profile change (`comparable`); a performance metric across the
 same change does not (`separate`) — the matrix is documented in
-[Canonical Model Identity §5](architecture/canonical-model-identity.md) and enforced by tests, not
+Canonical Model Identity §5 and enforced by tests, not
 by convention.
 
 ## 4. Name a capability

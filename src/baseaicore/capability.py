@@ -6,8 +6,7 @@ A capability ID is pure vocabulary syntax: one or more lowercase, underscore-wor
 by ``.``, each further segment narrowing the one before it (``coding``, ``coding.python``,
 ``content.article_draft``). This package owns only the *type* and its syntax validation; the
 vocabulary's *contents* and their version live in SetSpec, so that adding a term never requires a
-BaseAiCore release (`docs/architecture/master-architecture.md`, `docs/architecture/
-traceability-matrix.md` §"who owns the capability vocabulary").
+BaseAiCore release. SetSpec owns the capability vocabulary.
 """
 
 from __future__ import annotations

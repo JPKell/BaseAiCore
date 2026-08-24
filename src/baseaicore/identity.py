@@ -5,10 +5,10 @@ Imports no framework and performs no I/O.
 Identity answers "which weights?" and nothing else. It never contains a score, a configuration, an
 endpoint or a label — those are the descriptor, the runtime profile and the application's own
 data, and conflating them is the documented way a system like this rots
-(``docs/architecture/canonical-model-identity.md`` §1).
+(canonical model identity §1).
 
 The canonical-ID format is fixed by
-[ADR-0024](../../docs/adr/0024-canonical-id-and-model-references.md). It is a persisted, indexed
+ADR-0024. It is a persisted, indexed
 lookup key in three databases and a field in every cross-application payload, so its golden test
 is the one test in this repository that must never be "updated to match" a change.
 """
@@ -62,7 +62,7 @@ class IdentityConfidence(StrEnum):
     provider exposed no digest, so it can never be proven later to describe the same weights —
     a tag such as ``qwen3.5:latest`` can be repointed at any time. LoadCoach reduces evidence
     confidence for it and FreeWeight shows it in the UI
-    ([ADR-0017](../../docs/adr/0017-benchmark-confidence-and-freshness.md)).
+    (ADR-0017).
     """
 
     DIGEST = "digest"

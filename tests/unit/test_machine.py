@@ -2,7 +2,7 @@
 
 The property under test throughout: a machine keeps one identity across every change that is not a
 hardware change, and loses it the moment the hardware changes. The exclusion policy in
-`docs/architecture/machine-identity-and-reproducibility.md` §3 is asserted here rather than only
+machine identity and reproducibility §3 is asserted here rather than only
 documented, because a fingerprint that quietly started including the driver version would orphan
 every stored result on the next `apt upgrade` and nothing else would notice.
 """

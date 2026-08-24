@@ -20,7 +20,7 @@ with no I/O, it belongs here.
 * Machine profile, GPU profile, storage device, machine fingerprint.
 * The `Unsupported` sentinel and the `Measurement` type.
 * Exact money, token usage, model pricing observations and cost estimation
-  ([ADR-0030](../../adr/0030-model-cost-and-pricing.md)).
+  (ADR-0030).
 * Capability identifier type and validation (the *vocabulary contents* live in SetSpec).
 * Provider kind enumeration and provider identity.
 * Base error hierarchy with stable codes.
@@ -37,7 +37,7 @@ with no I/O, it belongs here.
 * No scoring, routing, workflow or benchmark logic.
 * No price acquisition: no bundled price catalogue, no provider price lookup, no exchange rates. The
   package defines what a price *is* and how to apply one; obtaining one is ModelRack's and the
-  applications' job ([ADR-0030](../../adr/0030-model-cost-and-pricing.md)).
+  applications' job (ADR-0030).
 * No currency conversion. Cross-currency arithmetic raises rather than assuming a rate.
 * No configuration loading, no logging configuration, no framework integration.
 * No mutable global state beyond the `UNSUPPORTED` singleton.
@@ -46,13 +46,13 @@ with no I/O, it belongs here.
 
 | Responsibility | Detail |
 |---|---|
-| Canonical model identity | `ModelIdentity`, `IdentityConfidence`, canonical ID string, equality and hashing ([Canonical Model Identity](../../architecture/canonical-model-identity.md)) |
+| Canonical model identity | `ModelIdentity`, `IdentityConfidence`, canonical ID string, equality and hashing (Canonical Model Identity) |
 | Model description | `ModelDescriptor` with architecture fields needed by KV-cache analysis |
 | Runtime profile | `RuntimeProfile` and its stable `profile_hash` |
 | Measurement subject | `MeasurementSubject` and comparability helpers |
-| Machine identity | `MachineProfile`, `GpuProfile`, `StorageDevice`, `machine_fingerprint` ([Machine Identity](../../architecture/machine-identity-and-reproducibility.md)) |
-| Unavailability | `Unsupported`, `UNSUPPORTED`, `Measurement`, `is_supported()` ([ADR-0016](../../adr/0016-unavailable-is-not-zero.md)) |
-| Money | `Money` as exact integer nanos in a named currency; no floats, no conversion ([ADR-0030](../../adr/0030-model-cost-and-pricing.md)) |
+| Machine identity | `MachineProfile`, `GpuProfile`, `StorageDevice`, `machine_fingerprint` (Machine Identity) |
+| Unavailability | `Unsupported`, `UNSUPPORTED`, `Measurement`, `is_supported()` (ADR-0016) |
+| Money | `Money` as exact integer nanos in a named currency; no floats, no conversion (ADR-0030) |
 | Token usage | `TokenUsage` — the disjoint billable token counts of one call, each a `Measurement` |
 | Model pricing | `PricingSource`, `TokenRates`, `ModelPricing` — a dated, sourced, windowed price observation with a stable `pricing_hash` |
 | Cost estimation | `CostEstimate` and `estimate_cost()`; an unpriceable component makes the total `UNSUPPORTED` with a reason, never a partial sum |
@@ -216,13 +216,13 @@ typed exceptions.
 
 Owns no persistent data. It defines the shape of identity information that consumers persist; the
 normative column names for identity storage are in
-[Canonical Model Identity §6](../../architecture/canonical-model-identity.md).
+Canonical Model Identity §6.
 
 ## 11. Public contracts
 
 1. `ModelIdentity` equality, hashing and `canonical_id` are stable across processes, machines and
    Python versions. Golden values are asserted in tests. The canonical-ID format is fixed by
-   [ADR-0024](../../adr/0024-canonical-id-and-model-references.md) and is a persisted lookup key in
+   ADR-0024 and is a persisted lookup key in
    three databases, so its golden test is the one that must never be "updated to match".
 2. `compute_machine_fingerprint` excludes driver/toolkit versions and storage, and is stable across a
    driver upgrade.
@@ -236,7 +236,7 @@ normative column names for identity storage are in
 8. `ModelPricing.pricing_hash` is stable across processes and excludes `observed_at`, so it
    identifies the price rather than the reading of it.
 9. `estimate_cost` never returns a numeric total that omits an unpriced component, and never prices
-   an absent rate as zero ([ADR-0030](../../adr/0030-model-cost-and-pricing.md)).
+   an absent rate as zero (ADR-0030).
 
 ## 12. Configuration
 
@@ -340,7 +340,7 @@ Coverage floor: **95 %** (it is a shared package); in practice this package shou
 * `EmbeddingModelIdentity` if embedding models need distinct handling.
 * Non-token billing units — per request, per image, per audio second, per tool call — as a sibling
   rate type alongside `TokenRates` when a supported provider needs one
-  ([ADR-0030](../../adr/0030-model-cost-and-pricing.md) "revisit when").
+  (ADR-0030 "revisit when").
 * A `BilledAmount` type distinct from `CostEstimate`, if a provider ever returns an authoritative
   billed figure with its response.
 * Richer comparability verdicts (per-metric-class rules) as FreeWeight's metric taxonomy matures.

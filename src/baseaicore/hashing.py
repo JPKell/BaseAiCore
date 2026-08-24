@@ -47,20 +47,20 @@ def canonical_json(value: Any) -> str:  # noqa: ANN401 — accepts any JSON-shap
       normalized to ``0.0``; ``nan`` and ``±inf`` are refused, since they are not JSON and a
       ``nan`` reaching a hash is a fabricated measurement in disguise.
     * :data:`~baseaicore.measurement.UNSUPPORTED` — the string ``"unsupported"``, fixed by
-      [ADR-0016](../../docs/adr/0016-unavailable-is-not-zero.md) §4. Never ``null``, never ``0``.
+      ADR-0016 §4. Never ``null``, never ``0``.
     * :class:`~enum.Enum` — its value, serialized by these same rules.
     * :class:`~datetime.datetime` — RFC 3339 with millisecond precision (:func:`to_rfc3339`), so
       it must be timezone-aware.
 
     Everything else is refused, including :class:`~decimal.Decimal` (``Decimal("3.0")`` and
     ``Decimal("3.00")`` are equal but serialize differently, so hashing one would depend on how it
-    was typed — see [ADR-0030](../../docs/adr/0030-model-cost-and-pricing.md); convert to
+    was typed — see ADR-0030; convert to
     :class:`~baseaicore.money.Money` or to a string first), ``bytes``, ``set`` and arbitrary
     objects.
 
     Strings are **not** Unicode-normalized. Two visually identical names in NFC and NFD hash
     differently, which is deliberate: a provider's model name must round-trip byte-exactly
-    (``docs/architecture/canonical-model-identity.md`` §2), and silently normalizing it here would
+    (canonical model identity §2), and silently normalizing it here would
     make the hash disagree with the equality of the object it came from.
 
     Args:
@@ -76,7 +76,7 @@ def canonical_json(value: Any) -> str:  # noqa: ANN401 — accepts any JSON-shap
     Security:
         Never call this on a structure containing a secret. Its output is what gets hashed,
         logged, stored and exported, and it makes no attempt to redact
-        (``docs/standards/security-standards.md``).
+        (security standards).
     """
     return json.dumps(
         _normalize(value, ()),

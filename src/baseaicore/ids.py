@@ -179,7 +179,7 @@ _DEFAULT_GENERATOR: Final = UlidGenerator()
 A monotonic generator needs state, and monotonicity is only meaningful per generator, so the
 convenience function has to be backed by exactly one. It is created at import and never replaced,
 which keeps it within the "process-wide immutable" exception to the no-module-state rule
-(``docs/standards/coding-standards.md`` §7). Code that needs a controlled clock or reproducible
+(coding standards §7). Code that needs a controlled clock or reproducible
 randomness constructs its own :class:`UlidGenerator` instead of reaching for this one.
 """
 

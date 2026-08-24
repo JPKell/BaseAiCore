@@ -1,6 +1,6 @@
 """Shared fixtures and the guards every test in this repository runs under.
 
-The guards enforce the determinism rules in ``docs/standards/testing-standards.md`` §4: no test
+The guards enforce the determinism rules in testing standards §4: no test
 reaches the network, and no test writes to the developer's real configuration or data directories.
 ``baseaicore`` performs no I/O at all, so both guards are here to *prove* that rather than to
 contain it — a future change that reached for a socket or an XDG path would fail loudly instead of
@@ -32,7 +32,7 @@ def frozen_clock() -> Iterator[datetime]:
     """Yield a fixed timezone-aware instant for injecting as a ``Clock``.
 
     Use as ``UlidGenerator(clock=lambda: frozen_clock)``. An injected clock is preferred over
-    patching the interpreter's, per ``docs/standards/coding-standards.md`` §5.
+    patching the interpreter's, per coding standards §5.
     """
     yield FROZEN_NOW
 
