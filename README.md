@@ -27,7 +27,7 @@ identity = ModelIdentity(
     normalize_digest("1f3a9c4e2b70a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930"),
 )
 print(identity.canonical_id)  # ollama/qwen3.5:9b-q8_0@sha256:1f3a9c4e2b70
-print(identity.identity_confidence)  # IdentityConfidence.DIGEST
+print(identity.identity_confidence)  # digest (IdentityConfidence.DIGEST)
 ```
 
 A capability ID validates its own syntax and knows its place in the vocabulary's specialization

@@ -11,7 +11,7 @@
 generate a sortable ID, and cost a call against a dated price observation — with `baseaicore` as the
 only installed suite package.
 
-**Prerequisites:** repository created; CI template; Coding and Testing standards adopted.
+**Prerequisites:** repository created; CI template; [Coding](../../standards/coding-standards.md) and [Testing](../../standards/testing-standards.md) standards adopted.
 
 **Work**
 * Repository skeleton: `pyproject.toml` (hatchling, `src/` layout, `requires-python = ">=3.12"`,
@@ -20,7 +20,7 @@ only installed suite package.
 * `identity.py`: `ProviderKind`, `IdentityConfidence`, `ModelIdentity`, `canonical_id`,
   `with_digest`, `normalize_digest`. The canonical-ID format is
   `{kind}/{name}@sha256:<12 hex>` or `…@unknown`, fixed by
-  ADR-0024 — it is a persisted lookup key in
+  [ADR-0024](../../adr/0024-canonical-id-and-model-references.md) — it is a persisted lookup key in
   three databases, so its golden test is the one that must never be "updated to match" a change.
 * `ids.py`: ULID `new_id`, `parse_id` → `UlidParts` (a frozen local type; a zero-dependency package
   cannot return a third-party ULID class).
@@ -29,7 +29,7 @@ only installed suite package.
 * `errors.py`: `SuiteError` and subclasses with stable codes.
 * `money.py`: `Money` (exact integer nanos in a named currency), `normalize_currency`. No floats, no
   currency conversion — cross-currency arithmetic raises
-  (ADR-0030 §2–3).
+  ([ADR-0030](../../adr/0030-model-cost-and-pricing.md) §2–3).
 * `cost.py`: `TokenCount`, `TokenUsage` (disjoint billable token counts), `PricingSource`,
   `TokenRates` (per **million** tokens, as quoted), `ModelPricing` (a dated, sourced, windowed price
   observation with a `pricing_hash` that excludes `observed_at`), `CostEstimate`, `estimate_cost`.
@@ -111,7 +111,7 @@ tests/unit/{test_descriptor,test_runtime,test_subject}.py
 **Tests**
 * `profile_hash` stable across field ordering and across processes; `None` fields excluded; nested `provider_options` hashed deterministically.
 * Descriptor accepts `UNSUPPORTED` for every optional numeric field; `raw` is preserved untouched.
-* Every cell of the comparability matrix from Canonical Model Identity §5 has a test, including quality-across-machines (warn) vs performance-across-machines (separate), and the `indeterminate` result when benchmark arguments are omitted.
+* Every cell of the comparability matrix from [Canonical Model Identity §5](../../architecture/canonical-model-identity.md) has a test, including quality-across-machines (warn) vs performance-across-machines (separate), and the `indeterminate` result when benchmark arguments are omitted.
 
 **Acceptance criteria**
 1. Two `RuntimeProfile`s differing only in `context_size` produce different hashes; identical ones produce the same hash in separate processes.
