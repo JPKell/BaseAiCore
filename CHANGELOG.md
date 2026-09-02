@@ -7,7 +7,36 @@ packaging and release standards §3.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-02
+
+Phase 5 of the [development plan](docs/packages/baseaicore/development-plan.md): the two types the
+PromptCadence and Adapter arcs need before any of their code exists, added so additively that no
+existing consumer notices. Every pre-existing test and every golden passes unchanged; no signature
+changed; `0.4.1` lands inside every existing `>=0.4,<0.5` pin, so no downstream repository needs a
+coordinated release to gain them. This release also carries the CI and packaging work done since
+`0.4.0`, listed below.
+
 ### Added
+- `DataClassification`: an ordered three-level vocabulary — `PUBLIC < INTERNAL < CONFIDENTIAL` —
+  caller-declared, with the lattice join being the built-in `max()` (ADR-0046).
+  Ordering is by **rank**, never by the member's string value: alphabetically
+  `"confidential" < "internal" < "public"`, which is exactly backwards, so the four ordering
+  operators are defined rather than inherited and comparing against a non-member **raises** rather
+  than falling back to string ordering. Not an `IntEnum`, so `PUBLIC` is never falsy. Every ordered
+  pair is golden-tested; adding a level is a new ADR, because the ordering is the contract.
+- `AdapterIdentity(name, artifact_digest, source_digest=None)`: a LoRA adapter named by the sha256
+  of the **served** artifact, so renaming the file changes nothing and changing its content makes a
+  new subject. `artifact_digest` is required — a malformed one is refused, never degraded to
+  `name_only` — and `source_digest` is lineage, excluded from equality, hashing and comparability.
+  Exposes `digest_short` and `canonical_suffix`.
+- `verify_adapter_base_compatibility(...) -> IdentityConfidence`: base compatibility checked by
+  digest and **failing closed**. A mismatch is a refusal, a declared digest against a base that
+  exposes none cannot be verified and is also a refusal, and a name-only declaration returns
+  `NAME_ONLY` — reusing the existing confidence machinery rather than a parallel flag.
+- `MeasurementSubject.adapter`: a keyword-only optional adapter axis, and
+  `MeasurementSubject.canonical_subject_id`, which appends the adapter's `+name@sha256:…` suffix.
+  **With no adapter it is byte-for-byte the model identity's canonical ID** — asserted against
+  every row of ADR-0024's golden table, which is the additive proof (ADR-0058).
 - `requirements/ci.lock` and `requirements/release.lock`: exact, hash-verified pins for this
   repository's own CI and release pipeline, required by Packaging and Release Standards §4 and
   Security Standards §11. `requirements/README.md` documents what they are for, what they are
@@ -15,6 +44,11 @@ packaging and release standards §3.
   regenerate them.
 
 ### Changed
+- `MeasurementSubject.is_comparable_with` gains one matrix row: a differing `adapter` — including
+  one bare subject and one adapted — yields `separate`, exactly as a differing runtime profile
+  does. Adapter evidence is measured, never inherited, so those are different subjects. Two
+  adapter-free subjects are unaffected, which is why every measurement taken before this release
+  compares exactly as it did.
 - CI and the release workflow install the locked sets instead of re-resolving on every run, and
   build with `--no-isolation` so the build backend comes from `release.lock` too. The Python 3.14
   early-warning job still resolves from ranges, because pinning versions that have no 3.14 wheels

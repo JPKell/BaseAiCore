@@ -2,7 +2,45 @@
 
 Generated from the public docstrings in `baseaicore.__all__` by [`scripts/generate_api_reference.py`](../scripts/generate_api_reference.py). Do not hand-edit — regenerate instead.
 
-`baseaicore 0.4.0` — 55 public symbols.
+`baseaicore 0.4.0` — 58 public symbols.
+
+### `AdapterIdentity`
+
+Defined in `baseaicore`.
+
+Immutable name of one LoRA adapter, addressed by the content of the artifact served.
+
+Two adapter identities are equal — and hash equal — if and only if their ``name`` and
+``artifact_digest`` are equal, stably across processes and Python versions, because they are
+built from plain strings. ``source_digest`` is lineage and is deliberately **not** part of that
+equality (see its field comment); the name is, because it appears in the canonical subject
+string, and two equal values that render differently would be incoherent.
+
+Evidence measured on ``(base, adapterA)`` applies to ``(base, adapterA)`` and to nothing else:
+not to the bare base, and not to ``(base, adapterB)``. A LoRA routinely degrades capabilities
+it was not trained for, so an inherited score would be a number about different weights
+published under this subject's name (ADR-0059). A differing adapter axis is a **different
+subject**, in the same way a differing ``runtime_profile_hash`` already is.
+
+Explicitly excluded, each for a reason: a scale (there is nowhere for it to live, so applying
+one adapter at two scales would vary behaviour without varying identity — ADR-0063); the file
+path (a locator, not an identity, which is what makes a rename safe); the base it was trained
+on (declared in the manifest and *verified* by
+:func:`verify_adapter_base_compatibility`, not asserted here); and any measurement.
+
+Attributes:
+    name: The manifest's human label, matching ``^[a-z][a-z0-9_-]{1,63}$``. It is the pin
+        name, the display name and the token that appears in a canonical subject string.
+    artifact_digest: ``"sha256:"`` + 64 lowercase hex characters, over the **served** GGUF
+        artifact. Required, unlike a model identity's digest: the digest *is* this identity,
+        so an adapter whose bytes cannot be named cannot be a subject at all.
+    source_digest: Optional ``"sha256:"`` + 64 lowercase hex over the training checkpoint, for
+        lineage only. Never part of identity, and never used for comparability.
+
+| Member | Kind | Summary |
+|---|---|---|
+| `canonical_suffix` | property | Return the suffix this adapter contributes to a canonical subject string. |
+| `digest_short` | property | Return ``"sha256:"`` plus the first 12 hex characters of the artifact digest. |
 
 ### `CapabilityId`
 
@@ -108,6 +146,44 @@ Attributes:
 |---|---|---|
 | `is_complete` | property | Report whether every used token class could be priced, making the total a real amount. |
 
+### `DataClassification`
+
+Defined in `baseaicore`.
+
+How sensitive a body of data is: an ordered rank, fixed for the life of the suite.
+
+Three levels, deliberately: fewer cannot express the shipped tier ladder (a local tier serves
+anything, a cheap remote tier serves up to internal, a frontier tier serves public only), and
+more would be levels no operator can distinguish in practice. **The ordering is the contract**
+— adding a level is a new ADR, not a minor release, because a new member has to be given a
+position and every value stored under the old vocabulary acquires a new meaning relative to it.
+
+The lattice join every consumer needs is the built-in :func:`max`::
+
+    >>> from baseaicore import DataClassification as DC
+    >>> max(DC.PUBLIC, DC.CONFIDENTIAL)
+    <DataClassification.CONFIDENTIAL: 'confidential'>
+
+Ordering is by **rank**, never by the member's string value — alphabetically
+``"confidential" < "internal" < "public"``, which is exactly backwards. That trap is why the
+four ordering operators are defined here rather than inherited from :class:`str`, and why
+comparing a member against a bare string **raises** instead of quietly answering
+alphabetically.
+
+The default, wherever one is needed, is :attr:`CONFIDENTIAL`: an undeclared classification is
+the most restrictive one, so an omission costs a user a remote tier rather than costing them
+their data. Callers own that default — this type does not impose it, because the type has no
+"absent" member and deliberately never will.
+
+This is a rank, not a taxonomy. It answers "how far may this travel", and it says nothing about
+which regulation covers the data or what kind of data it is; a deployment that needs kinds
+carries them as metadata beside the rank, never as a second vocabulary that also claims to
+govern egress.
+
+| Member | Kind | Summary |
+|---|---|---|
+| `rank` | property | Return this level's position in the ordering, lowest first. |
+
 ### `DependencyUnavailableError`
 
 Defined in `baseaicore.errors`.
@@ -207,12 +283,19 @@ Value: `Measurement` (`TypeAliasType`)
 
 Defined in `baseaicore.subject`.
 
-What one measurement was actually measured against: weights, runtime, machine.
+What one measurement was actually measured against: weights, adapter, runtime, machine.
 
 A measurement is never stored without its full subject (`Canonical Model Identity` §5, Rule
 3). The subject deliberately excludes the benchmark version and the dataset hash — those
 describe the *test*, not the *thing being tested* — which is why
 :meth:`is_comparable_with` takes them as separate arguments rather than storing them here.
+
+Two facts about adapter serving live in two different places on this subject, and confusing
+them corrupts evidence (ADR-0060). **Which adapter a request ran under** is :attr:`adapter`,
+its own named axis, because it changes the weights' behaviour and must be nameable — pinned,
+weighted, displayed. **Whether the server was launched with adapters registered at all** is a
+runtime setting like KV precision, so it is folded into ``runtime_profile_hash``, which needs
+to separate measurements rather than name them.
 
 Attributes:
     identity: Which weights were measured.
@@ -220,9 +303,13 @@ Attributes:
         profile the model was served under.
     machine_fingerprint: :func:`~baseaicore.machine.compute_machine_fingerprint` of the
         machine the measurement ran on.
+    adapter: Which LoRA adapter was applied, or ``None`` for the bare base. Keyword-only and
+        defaulting to ``None``, so every subject constructed before adapters existed means
+        exactly what it always meant.
 
 | Member | Kind | Summary |
 |---|---|---|
+| `canonical_subject_id` | property | Return the canonical string naming these weights and the adapter applied to them. |
 | `is_comparable_with` | method(self, other: 'MeasurementSubject', *, metric_kind: 'MetricKind', benchmark_version: 'str | None' = None, other_benchmark_version: 'str | None' = None, dataset_hashes: 'Mapping[str, str] | None' = None, other_dataset_hashes: 'Mapping[str, str] | None' = None) -> 'ComparabilityVerdict' | Decide whether a measurement on this subject may be compared with one on ``other``. |
 
 ### `MetricKind`
@@ -1031,3 +1118,38 @@ Returns:
     The current instant with ``tzinfo`` set to :data:`datetime.UTC`. Never naive: a naive
     datetime crossing a package boundary is ambiguous, and the suite's storage, exports and
     comparisons all assume UTC.
+
+### `verify_adapter_base_compatibility(served_base: 'ModelIdentity', *, declared_base_name: 'str', declared_base_digest: 'str | None' = None) -> 'IdentityConfidence'`
+
+Defined in `baseaicore`.
+
+Check an adapter's declared base against the base actually being served, failing closed.
+
+Applying an adapter to the wrong base produces plausible, confident, wrong output, which is the
+worst failure available here — so a mismatch is a refusal rather than an attempt, and an
+unverifiable claim is reported as reduced confidence rather than accepted as a match
+(ADR-0058 rule 5).
+
+The confidence returned is the **existing** :class:`~baseaicore.identity.IdentityConfidence`,
+not a parallel flag: the suite already knows how to display, store and discount a ``name_only``
+identity, and an adapter's uncertainty rides the same rail.
+
+Args:
+    served_base: The identity of the base the provider actually launched — the digest it
+        hashed, not the one a manifest hoped for.
+    declared_base_name: The provider model name the adapter's manifest declares as its base.
+    declared_base_digest: The artifact digest the manifest declares, in normalized form, when
+        it declares one. ``None`` means the manifest names its base without proving it, which
+        is what a PEFT ``adapter_config.json`` alone can support.
+
+Returns:
+    :attr:`~baseaicore.identity.IdentityConfidence.DIGEST` when the declared digest matches the
+    served base's, and :attr:`~baseaicore.identity.IdentityConfidence.NAME_ONLY` when the
+    manifest declared no digest and the names match. A ``NAME_ONLY`` result is a permanent
+    caveat that must be flagged everywhere the resulting subject surfaces.
+
+Raises:
+    ValidationError: If the declared digest does not match the served base's digest; if the
+        manifest declares a digest and the served base exposes none, so the claim cannot be
+        checked at all; or if no digest was declared and the base names differ. Each is a
+        refusal to apply the adapter, never a downgrade to a weaker check.

@@ -2,9 +2,11 @@
 
 Imports no framework and performs no I/O.
 
-A :class:`MeasurementSubject` is the triple every result is measured against: which weights, under
-what runtime settings, on which machine. Comparability follows from that triple alone for most of
-the matrix in
+A :class:`MeasurementSubject` is what every result is measured against: which weights, under
+which adapter if any, under what runtime settings, on which machine. The adapter axis is optional
+and was added additively (ADR-0058); a subject without one is byte-for-byte what it always was.
+
+Comparability follows from the subject alone for most of the matrix in
 Canonical Model Identity §5; the two rows
 that additionally turn on the benchmark version and the dataset hash take those as explicit
 arguments to :meth:`MeasurementSubject.is_comparable_with`, because neither is part of a
@@ -19,7 +21,7 @@ never one without the other (development plan Phase 2, "Gold standards").
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -29,6 +31,7 @@ from baseaicore.identity import IdentityConfidence
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from baseaicore.adapter import AdapterIdentity
     from baseaicore.identity import ModelIdentity
 
 __all__ = [
@@ -89,12 +92,19 @@ class ComparabilityVerdict:
 
 @dataclass(frozen=True, slots=True)
 class MeasurementSubject:
-    """What one measurement was actually measured against: weights, runtime, machine.
+    """What one measurement was actually measured against: weights, adapter, runtime, machine.
 
     A measurement is never stored without its full subject (`Canonical Model Identity` §5, Rule
     3). The subject deliberately excludes the benchmark version and the dataset hash — those
     describe the *test*, not the *thing being tested* — which is why
     :meth:`is_comparable_with` takes them as separate arguments rather than storing them here.
+
+    Two facts about adapter serving live in two different places on this subject, and confusing
+    them corrupts evidence (ADR-0060). **Which adapter a request ran under** is :attr:`adapter`,
+    its own named axis, because it changes the weights' behaviour and must be nameable — pinned,
+    weighted, displayed. **Whether the server was launched with adapters registered at all** is a
+    runtime setting like KV precision, so it is folded into ``runtime_profile_hash``, which needs
+    to separate measurements rather than name them.
 
     Attributes:
         identity: Which weights were measured.
@@ -102,11 +112,15 @@ class MeasurementSubject:
             profile the model was served under.
         machine_fingerprint: :func:`~baseaicore.machine.compute_machine_fingerprint` of the
             machine the measurement ran on.
+        adapter: Which LoRA adapter was applied, or ``None`` for the bare base. Keyword-only and
+            defaulting to ``None``, so every subject constructed before adapters existed means
+            exactly what it always meant.
     """
 
     identity: ModelIdentity
     runtime_profile_hash: str
     machine_fingerprint: str
+    adapter: AdapterIdentity | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         """Validate that the hash fields are not blank.
@@ -122,6 +136,33 @@ class MeasurementSubject:
                     f"MeasurementSubject.{field_name} must be a non-empty hash; got {value!r}.",
                     details={"field": field_name, "value": value},
                 )
+
+    @property
+    def canonical_subject_id(self) -> str:
+        """Return the canonical string naming these weights and the adapter applied to them.
+
+        With no adapter this is **byte-for-byte** the model identity's canonical ID — the whole
+        additive claim of ADR-0058, and the reason a golden pins it. With one, the adapter's
+        suffix is appended::
+
+            llamacpp/qwen3.5-9b-q8@sha256:1f3a9c4e2b70
+            llamacpp/qwen3.5-9b-q8@sha256:1f3a9c4e2b70+factcheck@sha256:9e2b41d07c55
+
+        Like the canonical ID it extends, this is a **display and lookup** key: lossy, never parsed
+        back into its parts, and never a URL path segment (ADR-0024 §3 and §4). Where it appears
+        as a URL query-parameter value the ``+`` is percent-encoded as ``%2B``, because a bare
+        ``+`` decodes to a space under form encoding.
+
+        It deliberately says nothing about the runtime profile or the machine. Those are part of
+        the subject and part of comparability, but they are hashes: this string is the part a
+        person reads in a log line, a badge or an explanation.
+
+        Returns:
+            The model identity's canonical ID, plus the adapter's suffix when one is present.
+        """
+        if self.adapter is None:
+            return self.identity.canonical_id
+        return f"{self.identity.canonical_id}{self.adapter.canonical_suffix}"
 
     # Signature fixed by spec.md §7; splitting the two benchmark/dataset pairs into an object
     # would hide that they are deliberately optional and independently omittable.
@@ -145,10 +186,18 @@ class MeasurementSubject:
         1. Different identity: :attr:`Comparability.INDETERMINATE`. A subject alone cannot tell
            a quantization variant of the same family from an unrelated model — that needs the
            descriptor's ``family``, which is not part of a measurement subject.
-        2. Same identity, different ``runtime_profile_hash``: :attr:`Comparability.SEPARATE` —
+        1a. Same identity, different :attr:`adapter` — including one bare and one adapted:
+           :attr:`Comparability.SEPARATE`. Evidence measured on ``(base, adapterA)`` applies to
+           that subject and to nothing else, because a LoRA routinely degrades capabilities it was
+           not trained for (ADR-0059). Two adapter subjects are shown side by side and never
+           merged, exactly as two runtime profiles are. Both subjects adapter-free is the case
+           this row does not fire on, which is why every measurement taken before adapters existed
+           compares exactly as it did.
+        2. Same identity and adapter, different ``runtime_profile_hash``:
+           :attr:`Comparability.SEPARATE` —
            the runtime-comparison case (a KV-precision or context-size study), shown side by side
            and never merged, regardless of ``metric_kind``.
-        3. Same identity and profile, different ``machine_fingerprint``: depends on
+        3. Same identity, adapter and profile, different ``machine_fingerprint``: depends on
            ``metric_kind``. Quality survives a machine change
            (:attr:`Comparability.WARN`, badge the machine); performance, memory and energy do not
            (:attr:`Comparability.SEPARATE`).
@@ -185,10 +234,19 @@ class MeasurementSubject:
                 "whether this is a quantization comparison or two unrelated models is unknown.",
             )
 
+        if self.adapter != other.adapter:
+            return ComparabilityVerdict(
+                Comparability.SEPARATE,
+                "Same identity but different adapter "
+                f"({self.adapter or 'no adapter'} vs {other.adapter or 'no adapter'}): adapter "
+                "evidence is measured, never inherited, so these are different subjects — "
+                "comparable only side by side, never merged.",
+            )
+
         if self.runtime_profile_hash != other.runtime_profile_hash:
             return ComparabilityVerdict(
                 Comparability.SEPARATE,
-                "Same identity but different runtime profile "
+                "Same identity and adapter but different runtime profile "
                 f"({self.runtime_profile_hash} vs {other.runtime_profile_hash}): comparable only "
                 "as an explicit runtime comparison, never merged.",
             )

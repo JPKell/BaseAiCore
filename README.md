@@ -2,11 +2,12 @@
 
 Zero-dependency domain foundation: canonical model identity, machine profile, the Unsupported measurement sentinel, capability IDs, IDs, timestamps and the base error hierarchy.
 
-**Status:** Phases 1–4 shipped (`0.4.0`) — the full [development
+**Status:** Phases 1–5 shipped (`0.4.1`) — the full [development
 plan](docs/packages/baseaicore/development-plan.md): measurement, identity, IDs, time, hashing,
 errors, money, cost, model descriptor, runtime profile, measurement subject, the machine profile
-with its fingerprint, and capability identifiers. Every public type is exported from
-`baseaicore.__init__` — see the [API reference](docs/api.md).
+with its fingerprint, capability identifiers, an ordered `DataClassification`, and the optional
+adapter axis on an execution subject. Every public type is exported from `baseaicore.__init__` —
+see the [API reference](docs/api.md).
 
 Part of the **Local AI Suite**.
 

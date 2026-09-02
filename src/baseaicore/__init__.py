@@ -7,8 +7,10 @@ pure vocabulary, it belongs here.
 What is exported below is the public API, complete as of Phase 4
 (``docs/packages/baseaicore/development-plan.md``): measurement, identity, IDs, time, hashing,
 errors, money and cost; model descriptor, runtime profile and measurement subject; machine profile
-and fingerprint; capability identifiers. Anything not listed in ``__all__`` is private and may
-change without a version bump, whatever its module happens to be named.
+and fingerprint; capability identifiers. Phase 5 adds two additive types and nothing else: an
+ordered :class:`DataClassification` and the optional adapter axis on an execution subject
+(:class:`AdapterIdentity`, :attr:`MeasurementSubject.adapter`). Anything not listed in ``__all__``
+is private and may change without a version bump, whatever its module happens to be named.
 
     >>> from baseaicore import ModelIdentity, ProviderKind
     >>> identity = ModelIdentity(ProviderKind.OLLAMA, "qwen3.5:9b-q8_0")
@@ -19,7 +21,9 @@ change without a version bump, whatever its module happens to be named.
 from __future__ import annotations
 
 from baseaicore.__about__ import __version__
+from baseaicore.adapter import AdapterIdentity, verify_adapter_base_compatibility
 from baseaicore.capability import CapabilityId
+from baseaicore.classification import DataClassification
 from baseaicore.cost import (
     TOKENS_PER_RATE_UNIT,
     CostEstimate,
@@ -79,6 +83,7 @@ __all__ = [
     "NANOS_PER_UNIT",
     "TOKENS_PER_RATE_UNIT",
     "UNSUPPORTED",
+    "AdapterIdentity",
     "CapabilityId",
     "Clock",
     "Comparability",
@@ -86,6 +91,7 @@ __all__ = [
     "ConfigurationError",
     "ConflictError",
     "CostEstimate",
+    "DataClassification",
     "DependencyUnavailableError",
     "GpuProfile",
     "GpuVendor",
@@ -131,4 +137,5 @@ __all__ = [
     "supported_values",
     "to_rfc3339",
     "utc_now",
+    "verify_adapter_base_compatibility",
 ]

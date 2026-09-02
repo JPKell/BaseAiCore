@@ -197,3 +197,94 @@ docs/{quickstart.md,api.md}
 **Gold standards:** clean, minimal public API; zero dependencies; deterministic serialization; 95 %+ coverage; documented behaviour.
 **Deferred:** LoRA identity, non-token billing units, richer comparability verdicts — all listed as
 future extensions in the spec. (Cost types shipped in Phase 1.)
+
+---
+
+## Phase 5 — Data classification and the adapter axis (0.4.1)
+
+**Goal:** the two types the PromptCadence and Adapter arcs need before any of their code exists,
+added so additively that no existing consumer notices. Ships as `0.4.1`, inside every existing
+`>=0.4,<0.5` pin, so no downstream repository needs a coordinated release to gain them.
+
+**Prerequisites:** Phases 1–4, and the accepted
+[ADR-0046](../../adr/0046-data-classification-is-ordered-and-defaults-closed.md) (D-2) and
+[ADR-0058](../../adr/0058-the-execution-subject-gains-an-adapter-axis.md) (A-1). This phase
+implements those two records and nothing beyond them.
+
+**Work**
+* `classification.py`: `DataClassification` — an ordered three-level `StrEnum`
+  (`PUBLIC < INTERNAL < CONFIDENTIAL`) with the four ordering operators defined rather than
+  inherited, `rank`, and a refusal when compared against a non-member.
+* `adapter.py`: `AdapterIdentity(name, artifact_digest, source_digest=None)` with `digest_short`
+  and `canonical_suffix`; `verify_adapter_base_compatibility(...) -> IdentityConfidence`,
+  failing closed.
+* `subject.py`: `MeasurementSubject` gains a keyword-only `adapter` defaulting to `None`, a
+  `canonical_subject_id` property, and one new comparability row — a differing adapter is
+  `SEPARATE`, exactly as a differing runtime profile is.
+* `__init__.py`: three new exports; the packaging test's expected surface updated with them.
+* No new dependency, and none is possible: `baseaicore` imports the standard library only.
+
+**Files/subsystems**
+```text
+src/baseaicore/{classification.py,adapter.py}
+src/baseaicore/subject.py             # + adapter field, canonical_subject_id, one matrix row
+src/baseaicore/__init__.py            # + AdapterIdentity, DataClassification,
+                                      #   verify_adapter_base_compatibility
+tests/unit/{test_classification.py,test_adapter.py}
+tests/unit/{test_subject.py,test_identity.py}   # the additive goldens
+```
+
+**Tests**
+* **The additive golden, and it is the important one:** every row of ADR-0024's existing
+  `GOLDEN_CANONICAL_IDS` table, produced by a subject carrying no adapter, byte for byte. It lives
+  in `test_identity.py` beside the table it must not disturb.
+* Classification: all nine ordered pairs; `max()` as the lattice join over all nine combinations;
+  `sorted()`; the serialized values and ranks; `PUBLIC` is truthy; comparison against a bare
+  string raises in both directions; the alphabetical trap asserted against explicitly.
+* Adapter: golden canonical suffixes; `digest_short`; lineage does not split a subject; a
+  different artifact under the same name is a different adapter; frozen, copy- and pickle-stable.
+* Refusals: eight malformed names, seven unnormalized artifact digests, a malformed
+  `source_digest`; and the four base-compatibility refusals (mismatched digest, declared digest
+  against an unidentifiable base, mismatched name with no digest) with `NAME_ONLY` returned for a
+  name-only match.
+* Subject: adapter-bearing canonical strings; the percent-encoded query-parameter form
+  (`%2B`, and no bare `+`); `adapter` is keyword-only so three positional arguments still mean
+  what they always meant; bare-vs-adapted, adapted-vs-bare and two-adapters all `SEPARATE`; the
+  same adapter still `COMPARABLE`; two subjects differing only in lineage still `COMPARABLE`.
+
+**Acceptance criteria — what to run, and what a person should see**
+1. `.venv/bin/python -m pytest -q` — **every pre-existing test passes unchanged**, and the total
+   grows only by the new ones. No golden is edited to match new behaviour.
+2. `.venv/bin/python -m pytest tests/unit/test_identity.py -k no_adapter -q` — the additive proof
+   in isolation: a bare subject reproduces every canonical-ID golden.
+3. In a REPL, the two types do what their ADRs say:
+   ```pycon
+   >>> from baseaicore import AdapterIdentity, DataClassification, MeasurementSubject
+   >>> max(DataClassification.PUBLIC, DataClassification.CONFIDENTIAL)
+   <DataClassification.CONFIDENTIAL: 'confidential'>
+   >>> DataClassification.PUBLIC < "internal"
+   Traceback (most recent call last): ... TypeError: DataClassification is ordered by rank ...
+   >>> MeasurementSubject(identity, "p", "m").canonical_subject_id == identity.canonical_id
+   True
+   ```
+4. The full gate is green: `ruff format --check . && ruff check . && mypy src tests &&
+   lint-imports && pytest -m "not live and not performance"`, with coverage ≥ 95 %.
+5. `pip install baseaicore==0.4.1` in a clean virtualenv imports the three new names and
+   type-checks from a downstream project (the post-publish check).
+
+**Known risks:** the ordering trap — `DataClassification` subclasses `str`, so an inherited `<`
+would compare alphabetically and be backwards, permissively. Mitigated by defining all four
+operators, by refusing non-member operands rather than returning `NotImplemented` (which would let
+Python fall back to `str.__lt__` through the reflected operation), and by a test that asserts the
+alphabetical order explicitly for contrast.
+**Likely failure modes:** an adapter axis that changes an existing serialized form (covered by the
+additive golden); `source_digest` participating in equality and silently splitting one subject's
+evidence in two (covered by a test); a caller comparing a classification against a configuration
+string and getting alphabetical nonsense (refused, not answered).
+**Gold standards:** additive only, no signature changes; 100 % coverage on the new modules; zero
+dependencies; every public symbol documented, including what it refuses.
+**Deferred:** multi-adapter composition and per-request scale
+([ADR-0063](../../adr/0063-one-adapter-at-a-time.md) — both need the identity-of-a-weighted-set
+problem solved first); the adapter manifest's own schema, which is SetSpec's
+([ADR-0061](../../adr/0061-the-adapter-registry-is-a-directory-and-a-manifest.md)); any classification
+default, which is the caller's.

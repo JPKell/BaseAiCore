@@ -8,10 +8,12 @@ default "yes".
 
 from __future__ import annotations
 
+import urllib.parse
 from typing import Any
 
 import pytest
 
+from baseaicore.adapter import AdapterIdentity
 from baseaicore.errors import ValidationError
 from baseaicore.identity import ModelIdentity, ProviderKind
 from baseaicore.subject import Comparability, ComparabilityVerdict, MeasurementSubject, MetricKind
@@ -256,3 +258,156 @@ def test_indeterminate_never_becomes_comparable_by_a_missing_argument() -> None:
     for kwargs in always_indeterminate:
         verdict = subject().is_comparable_with(subject(), metric_kind=MetricKind.QUALITY, **kwargs)
         assert verdict.comparability is Comparability.INDETERMINATE, kwargs
+
+
+# ---- The adapter axis (Phase 5, ADR-0058) ----------------------------------------------------
+#
+# The additive claim under test: with no adapter, a subject's canonical string is byte-for-byte
+# the model identity's canonical ID. Its exhaustive form — over every row of ADR-0024's golden
+# table — is in test_identity.py, beside the table it must not disturb.
+
+DIGEST = "sha256:1f3a9c4e2b70a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930"
+ADAPTER_DIGEST = "sha256:9e2b41d07c55a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930"
+FACTCHECK = AdapterIdentity("factcheck", ADAPTER_DIGEST)
+HOUSE_VOICE = AdapterIdentity("house-voice", DIGEST)
+
+
+def test_a_bare_subject_serializes_byte_identically_to_the_canonical_id() -> None:
+    # The additive claim of ADR-0058, at this level: an absent adapter adds nothing to the string.
+    # The exhaustive form of this proof, over every row of ADR-0024's own golden table, lives in
+    # test_identity.py beside that table.
+    identity = ModelIdentity(ProviderKind.OLLAMA, "qwen3.5:9b-q8_0", DIGEST)
+    subject = MeasurementSubject(identity, "profile-hash", "machine-fp")
+
+    assert subject.canonical_subject_id == identity.canonical_id
+    assert subject.adapter is None
+
+
+GOLDEN_ADAPTER_SUBJECT_IDS = [
+    (
+        ModelIdentity(ProviderKind.LLAMACPP, "qwen3.5-9b-q8", DIGEST),
+        FACTCHECK,
+        "llamacpp/qwen3.5-9b-q8@sha256:1f3a9c4e2b70+factcheck@sha256:9e2b41d07c55",
+    ),
+    (
+        ModelIdentity(ProviderKind.LLAMACPP, "qwen3.5-9b-q8", None),
+        FACTCHECK,
+        "llamacpp/qwen3.5-9b-q8@unknown+factcheck@sha256:9e2b41d07c55",
+    ),
+    (
+        ModelIdentity(ProviderKind.LLAMACPP, "hf.co/user/repo:q4@main", None),
+        HOUSE_VOICE,
+        "llamacpp/hf.co/user/repo:q4@main@unknown+house-voice@sha256:1f3a9c4e2b70",
+    ),
+]
+
+
+@pytest.mark.parametrize(("identity", "adapter", "expected"), GOLDEN_ADAPTER_SUBJECT_IDS)
+def test_an_adapter_bearing_subject_matches_its_golden_canonical_string(
+    identity: ModelIdentity, adapter: AdapterIdentity, expected: str
+) -> None:
+    subject = MeasurementSubject(identity, "profile-hash", "machine-fp", adapter=adapter)
+
+    assert subject.canonical_subject_id == expected
+
+
+def test_the_plus_is_percent_encoded_where_the_string_is_a_query_parameter_value() -> None:
+    # ADR-0024 §3 is unchanged: this string is never a URL path segment. Where it appears as a
+    # query-parameter value, a bare "+" would decode to a space under form encoding and resolve to
+    # a different subject, or to none — so it is encoded as %2B.
+    subject = MeasurementSubject(
+        ModelIdentity(ProviderKind.LLAMACPP, "qwen3.5-9b-q8", DIGEST),
+        "profile-hash",
+        "machine-fp",
+        adapter=FACTCHECK,
+    )
+
+    encoded = urllib.parse.quote(subject.canonical_subject_id, safe="")
+
+    assert encoded == (
+        "llamacpp%2Fqwen3.5-9b-q8%40sha256%3A1f3a9c4e2b70%2Bfactcheck%40sha256%3A9e2b41d07c55"
+    )
+    assert "%2B" in encoded
+    assert "+" not in encoded
+
+
+def test_the_adapter_field_is_keyword_only_so_positional_construction_is_unchanged() -> None:
+    # Three positional arguments is what every existing caller writes, and it still means what it
+    # always meant.
+    subject = MeasurementSubject(
+        ModelIdentity(ProviderKind.OLLAMA, "m", DIGEST), "profile-hash", "machine-fp"
+    )
+
+    assert subject.adapter is None
+    with pytest.raises(TypeError):
+        MeasurementSubject(  # type: ignore[misc]  # proving the refusal
+            ModelIdentity(ProviderKind.OLLAMA, "m", DIGEST),
+            "profile-hash",
+            "machine-fp",
+            FACTCHECK,
+        )
+
+
+def _subject(adapter: AdapterIdentity | None) -> MeasurementSubject:
+    return MeasurementSubject(
+        ModelIdentity(ProviderKind.LLAMACPP, "qwen3.5-9b-q8", DIGEST),
+        "profile-hash",
+        "machine-fp",
+        adapter=adapter,
+    )
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [
+        (None, FACTCHECK),
+        (FACTCHECK, None),
+        (FACTCHECK, HOUSE_VOICE),
+    ],
+    ids=["bare-vs-adapted", "adapted-vs-bare", "two-adapters"],
+)
+def test_a_differing_adapter_makes_two_subjects_separate_never_merged(
+    left: AdapterIdentity | None, right: AdapterIdentity | None
+) -> None:
+    # Evidence measured on (base, adapterA) applies to that subject and to nothing else — not to
+    # the bare base, not to (base, adapterB). ADR-0059.
+    verdict = _subject(left).is_comparable_with(
+        _subject(right),
+        metric_kind=MetricKind.QUALITY,
+        benchmark_version="1.0.0",
+        other_benchmark_version="1.0.0",
+        dataset_hashes={"d": "h"},
+        other_dataset_hashes={"d": "h"},
+    )
+
+    assert verdict.comparability is Comparability.SEPARATE
+    assert "adapter" in verdict.reason
+
+
+def test_the_same_adapter_compares_exactly_as_the_bare_subject_does() -> None:
+    verdict = _subject(FACTCHECK).is_comparable_with(
+        _subject(FACTCHECK),
+        metric_kind=MetricKind.QUALITY,
+        benchmark_version="1.0.0",
+        other_benchmark_version="1.0.0",
+        dataset_hashes={"d": "h"},
+        other_dataset_hashes={"d": "h"},
+    )
+
+    assert verdict.comparability is Comparability.COMPARABLE
+
+
+def test_two_subjects_differing_only_in_adapter_lineage_are_the_same_subject() -> None:
+    # source_digest is lineage, not identity, so it must not split a subject or its evidence.
+    with_lineage = AdapterIdentity("factcheck", ADAPTER_DIGEST, "sha256:" + "ab" * 32)
+
+    verdict = _subject(FACTCHECK).is_comparable_with(
+        _subject(with_lineage),
+        metric_kind=MetricKind.QUALITY,
+        benchmark_version="1.0.0",
+        other_benchmark_version="1.0.0",
+        dataset_hashes={"d": "h"},
+        other_dataset_hashes={"d": "h"},
+    )
+
+    assert verdict.comparability is Comparability.COMPARABLE

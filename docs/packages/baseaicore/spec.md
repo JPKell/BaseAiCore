@@ -88,7 +88,26 @@ ModelCapabilityFlag(StrEnum)             # TOOLS, VISION, THINKING, STRUCTURED_O
 ModelDescriptor(identity, observed_at, …)
 RuntimeProfile(context_size=None, kv_cache_precision=None, …)
     .profile_hash -> str
-MeasurementSubject(identity, runtime_profile_hash, machine_fingerprint)
+AdapterIdentity(name, artifact_digest, source_digest=None)          # Phase 5 (ADR-0058)
+    # A LoRA named by the sha256 of the SERVED artifact, so a rename is safe and a content change
+    # is a new subject. `artifact_digest` is required — unlike a model identity's, which may be
+    # absent — because the digest IS this identity; a malformed one is refused, never degraded to
+    # name_only. `source_digest` is lineage and is excluded from equality, hashing and
+    # comparability. No scale field: one adapter at a time, at a fixed scale (ADR-0063).
+    .digest_short -> str                 # "sha256:<12 hex>", ADR-0024 §1's rule reused
+    .canonical_suffix -> str             # "+{name}@{digest_short}"
+verify_adapter_base_compatibility(served_base, *, declared_base_name,
+                                  declared_base_digest=None) -> IdentityConfidence
+    # Fails closed (ADR-0058 rule 5): a declared digest must match the served base's, and a
+    # declared digest against a base that exposes none cannot be verified — both are refusals,
+    # never an attempt. A name-only declaration whose names match returns NAME_ONLY, reusing the
+    # existing confidence machinery rather than a parallel flag.
+MeasurementSubject(identity, runtime_profile_hash, machine_fingerprint, *, adapter=None)
+    .canonical_subject_id -> str         # the canonical ID, plus the adapter's suffix when one is
+                                         # present. With no adapter it is byte-for-byte the
+                                         # canonical ID — the additive claim, golden-tested.
+                                         # Never a URL path segment; as a query-parameter value
+                                         # the "+" is percent-encoded as %2B (ADR-0024 §3).
     .is_comparable_with(other, *, metric_kind,
                        benchmark_version: str | None = None,
                        other_benchmark_version: str | None = None,
@@ -100,6 +119,21 @@ MeasurementSubject(identity, runtime_profile_hash, machine_fingerprint)
     # them yields verdict `indeterminate` with the reason naming what was not supplied — never
     # `comparable` by default. A helper that answered "yes" because it was not told what it
     # needed would be worse than no helper.
+    # A differing `adapter` — including one bare and one adapted — yields `separate`, exactly as a
+    # differing runtime profile does: adapter evidence is measured, never inherited (ADR-0059).
+
+# Data classification (Phase 5, ADR-0046)
+DataClassification(StrEnum)              # PUBLIC < INTERNAL < CONFIDENTIAL
+    # An ordered rank, not a taxonomy, and fixed for the life of the suite: adding a level is a new
+    # ADR, because the ordering is what three components compute egress against. The lattice join
+    # is the built-in max(). Ordering is by RANK, never by the member's string value —
+    # alphabetically "confidential" < "internal" < "public", which is exactly backwards — so the
+    # four ordering operators are defined rather than inherited, and comparing a member against a
+    # bare string RAISES rather than answering alphabetically. Not an IntEnum: PUBLIC must not be
+    # falsy, or `if classification:` would read "public" as "unset". Callers default an absent
+    # declaration to CONFIDENTIAL; this type has no "absent" member and never will.
+    .rank -> int                         # 0/1/2; for indexing an ordering in a database. NOT the
+                                         # serialized form — rows and payloads carry the string.
 
 # Machine
 GpuVendor(StrEnum)                       # NVIDIA, AMD, INTEL, APPLE, UNKNOWN
@@ -237,6 +271,15 @@ normative column names for identity storage are in
    identifies the price rather than the reading of it.
 9. `estimate_cost` never returns a numeric total that omits an unpriced component, and never prices
    an absent rate as zero ([ADR-0030](../../adr/0030-model-cost-and-pricing.md)).
+10. **`DataClassification`'s ordering is the contract.** Every ordered pair is golden-tested, the
+    join is `max()`, and a comparison against a non-member raises rather than falling back to
+    alphabetical string ordering — which would be silently wrong in the permissive direction
+    ([ADR-0046](../../adr/0046-data-classification-is-ordered-and-defaults-closed.md)).
+11. **The adapter axis is additive to the point of invisibility.** A subject with no adapter
+    produces a `canonical_subject_id` byte-identical to its `canonical_id`, for every row of
+    ADR-0024's golden table, and compares exactly as it did before the axis existed. Adapter
+    identity is the served artifact's digest; base compatibility is verified by digest and fails
+    closed ([ADR-0058](../../adr/0058-the-execution-subject-gains-an-adapter-axis.md)).
 
 ## 12. Configuration
 
@@ -336,7 +379,9 @@ Coverage floor: **95 %** (it is a shared package); in practice this package shou
   practice. It is **not** provided today: the escape hatch would have to be honoured by every
   consumer that stores a fingerprint, and no consumer specifies one, so shipping it would create a
   setting nothing reads.
-* Optional LoRA/adapter identity as a fourth optional identity field, if a provider requires it.
+* ~~Optional LoRA/adapter identity as a fourth optional identity field~~ — **shipped in 0.4.1** as
+  an optional axis on the *subject* rather than a field on `ModelIdentity`, which keeps "same base"
+  computable ([ADR-0058](../../adr/0058-the-execution-subject-gains-an-adapter-axis.md)).
 * `EmbeddingModelIdentity` if embedding models need distinct handling.
 * Non-token billing units — per request, per image, per audio second, per tool call — as a sibling
   rate type alongside `TokenRates` when a supported provider needs one

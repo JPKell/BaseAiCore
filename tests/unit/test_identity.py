@@ -18,6 +18,7 @@ from baseaicore.identity import (
     ProviderKind,
     normalize_digest,
 )
+from baseaicore.subject import MeasurementSubject
 
 DIGEST = "sha256:1f3a9c4e2b70a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930"
 
@@ -266,3 +267,25 @@ def test_provider_kind_values_are_the_persisted_strings() -> None:
         "vllm",
         "fake",
     ]
+
+
+# ---- The additive proof for the adapter axis (Phase 5, ADR-0058) -----------------------------
+#
+# ADR-0058 extends the canonical string with an optional adapter suffix. The claim that makes the
+# extension safe is that an *absent* adapter changes nothing: every golden above must still be
+# produced, byte for byte, by a subject carrying no adapter. This test is deliberately here, next
+# to the table it must not disturb, rather than in test_subject.py.
+
+
+@pytest.mark.parametrize(
+    ("kind", "name", "digest", "expected"), GOLDEN_CANONICAL_IDS, ids=lambda v: str(v)[:40]
+)
+def test_a_subject_with_no_adapter_reproduces_every_canonical_id_golden(
+    kind: ProviderKind, name: str, digest: str | None, expected: str
+) -> None:
+    identity = ModelIdentity(kind, name, digest)
+
+    subject = MeasurementSubject(identity, "profile-hash", "machine-fp")
+
+    assert subject.canonical_subject_id == expected
+    assert subject.canonical_subject_id == identity.canonical_id

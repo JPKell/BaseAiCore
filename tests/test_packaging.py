@@ -83,6 +83,11 @@ EXPECTED_PUBLIC_API = {
     # Hashing
     "canonical_json",
     "sha256_of",
+    # Data classification (Phase 5, ADR-0046)
+    "DataClassification",
+    # Adapter axis (Phase 5, ADR-0058)
+    "AdapterIdentity",
+    "verify_adapter_base_compatibility",
     # Metadata
     "__version__",
 }
