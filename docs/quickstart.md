@@ -85,7 +85,11 @@ print(general.inherits_from(capability))  # False: the reverse does not hold
 ```python
 from baseaicore import UNSUPPORTED, is_supported, supported_values
 
-UNSUPPORTED or 0                       # raises TypeError -- not 0
+try:
+    UNSUPPORTED or 0                   # TypeError -- an absent measurement is not 0
+except TypeError as refusal:
+    print(refusal)
+
 is_supported(UNSUPPORTED)              # False
 supported_values([12.5, UNSUPPORTED, 9.0])  # [12.5, 9.0]
 ```

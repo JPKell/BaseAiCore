@@ -7,6 +7,14 @@ packaging and release standards §3.
 
 ## [Unreleased]
 
+### Fixed
+- The `UNSUPPORTED` example in `README.md` and `docs/quickstart.md` ran its first line and stopped:
+  `UNSUPPORTED or 0` raises, as the comment beside it says, so the two lines demonstrating
+  `is_supported` and `supported_values` were unreachable to anyone who pasted the block. The
+  refusal is now shown inside a `try`, so the example demonstrates the same thing and runs to
+  completion. No behaviour changed. Found by executing every documented snippet in the suite,
+  not by reading them.
+
 ## [0.4.1] — 2026-09-02
 
 Phase 5 of the [development plan](docs/packages/baseaicore/development-plan.md): the two types the
